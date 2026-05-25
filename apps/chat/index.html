@@ -481,12 +481,28 @@
 </div>
 
 <script>
-    // ======================== AI 角色数据定义 ========================
-    const AI_CONTACTS = [
+    // ======================== AI 角色数据（localStorage 统一管理） ========================
+    const DEFAULT_CONTACTS = [
         { id: 'ai_general', name: '通用助手', avatar: '🤖', desc: '全能AI助手，解答日常问题', role: 'general' },
         { id: 'ai_coding', name: '编程助手', avatar: '💻', desc: '专注代码、调试和技术问答', role: 'coding' },
         { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', desc: '倾听心声，提供情绪支持', role: 'psychologist' }
     ];
+
+    function loadContacts() {
+        const saved = localStorage.getItem('contacts');
+        if (saved) {
+            try { return JSON.parse(saved); } catch(e) {}
+        }
+        const defaults = JSON.parse(JSON.stringify(DEFAULT_CONTACTS));
+        localStorage.setItem('contacts', JSON.stringify(defaults));
+        return defaults;
+    }
+
+    function saveContacts(contacts) {
+        localStorage.setItem('contacts', JSON.stringify(contacts));
+    }
+
+    let AI_CONTACTS = loadContacts();
 
     // 聊天记录存储
     let chatHistory = {};
@@ -666,7 +682,40 @@
     if (avatarBtn) avatarBtn.addEventListener('click', toggleDrawer);
     if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
     if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
-    if (plusBtn) plusBtn.addEventListener('click', () => alert('更多功能开发中~'));
+    if (plusBtn) plusBtn.addEventListener('click', showCreateContactModal);
+
+    // ========== 创建角色弹窗 ==========
+    function showCreateContactModal() {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+        overlay.innerHTML = `<div style="background:#fff;border-radius:24px;padding:24px;width:90%;max-width:360px;animation:slideUp .25s ease">
+            <h3 style="margin-bottom:16px">➕ 创建角色</h3>
+            <input id="newContactName" placeholder="角色名称" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px">
+            <input id="newContactAvatar" placeholder="头像 emoji（如 🤖）" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px" value="🤖">
+            <input id="newContactDesc" placeholder="一句话简介" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px">
+            <select id="newContactRole" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;font-size:15px">
+                <option value="general">通用</option><option value="coding">编程</option><option value="psychologist">心理</option>
+            </select>
+            <div style="display:flex;gap:10px"><button id="confirmCreateBtn" style="flex:1;padding:12px;background:#007aff;color:#fff;border:none;border-radius:20px;font-size:15px;cursor:pointer">创建</button><button id="cancelCreateBtn" style="flex:1;padding:12px;background:#f1f5f9;border:none;border-radius:20px;font-size:15px;cursor:pointer">取消</button></div>
+        </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('cancelCreateBtn').onclick = () => overlay.remove();
+        document.getElementById('confirmCreateBtn').onclick = () => {
+            const name = document.getElementById('newContactName').value.trim();
+            if (!name) { alert('请输入角色名称'); return; }
+            const avatar = document.getElementById('newContactAvatar').value.trim() || '🤖';
+            const desc = document.getElementById('newContactDesc').value.trim() || '';
+            const role = document.getElementById('newContactRole').value;
+            const newId = 'custom_' + Date.now();
+            AI_CONTACTS.push({ id: newId, name, avatar, desc, role });
+            saveContacts(AI_CONTACTS);
+            chatHistory[newId] = [];
+            renderMessageList();
+            renderContactsList();
+            overlay.remove();
+        };
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    }
     
     // 【修复】返回桌面按钮 - 直接跳转到根目录的桌面
     if (backToDesktopBtn) {

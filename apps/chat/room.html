@@ -707,18 +707,27 @@
 </div>
 
 <script>
-    // ======================== AI 角色数据定义 ========================
-    const AI_CONTACTS = [
-        { id: 'ai_general', name: '通用助手', avatar: '🤖', role: 'general' },
-        { id: 'ai_coding', name: '编程助手', avatar: '💻', role: 'coding' },
-        { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', role: 'psychologist' }
-    ];
+    // ======================== AI 角色数据（统一从 localStorage 加载） ========================
+    function loadContactsForRoom() {
+        const saved = localStorage.getItem('contacts');
+        if (saved) {
+            try { const c = JSON.parse(saved); if (c.length) return c; } catch(e) {}
+        }
+        const defaults = [
+            { id: 'ai_general', name: '通用助手', avatar: '🤖', role: 'general' },
+            { id: 'ai_coding', name: '编程助手', avatar: '💻', role: 'coding' },
+            { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', role: 'psychologist' }
+        ];
+        localStorage.setItem('contacts', JSON.stringify(defaults));
+        return defaults;
+    }
+    const AI_CONTACTS = loadContactsForRoom();
 
     const PERSONA_LIST = [
-        { id: 'default', name: '默认助手', emoji: '🤖', replyStyle: 'default' },
-        { id: 'gentle_senior', name: '温柔学姐', emoji: '🌸', replyStyle: 'gentle' },
-        { id: 'tsundere_cat', name: '傲娇猫娘', emoji: '🐱', replyStyle: 'tsundere' },
-        { id: 'cool_detective', name: '冷酷侦探', emoji: '🕵️', replyStyle: 'cool' }
+        { id: 'default', name: '默认', emoji: '🤖', replyStyle: 'default' },
+        { id: 'gentle', name: '温柔', emoji: '🌸', replyStyle: 'gentle' },
+        { id: 'tsundere', name: '傲娇', emoji: '🐱', replyStyle: 'tsundere' },
+        { id: 'cool', name: '冷酷', emoji: '🕵️', replyStyle: 'cool' }
     ];
 
     let contactsSettings = {};
