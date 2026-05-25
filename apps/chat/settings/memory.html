@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>记忆与上下文</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:#f5f7fb;padding:16px;min-height:100vh}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.back-btn{background:#fff;border:1px solid #e2e8f0;padding:10px 16px;border-radius:24px;font-size:15px;cursor:pointer;color:#1e293b}
+h1{font-size:22px;font-weight:600}
+.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+h3{font-size:15px;margin:16px 0 10px;color:#1e293b}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.row label{font-size:14px;min-width:70px;color:#475569}
+input,select,textarea{font-size:14px;padding:8px 12px;border-radius:12px;border:1px solid #e2e8f0;background:#fff}
+input[type="number"]{width:80px;text-align:center}
+textarea{width:100%;resize:vertical}
+select{flex:1}
+.btn{padding:10px 20px;border:none;border-radius:20px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-primary{background:#007aff;color:#fff;width:100%;margin-bottom:12px}
+.btn-danger{background:#ff3b30;color:#fff}
+.btn-sm{background:#f1f5f9;color:#1e293b;padding:6px 12px;font-size:12px;border-radius:14px;margin-right:6px}
+.btn-sm:active{transform:scale(.95)}
+.summary-item{background:#f8fafc;padding:12px;border-radius:12px;margin-bottom:8px}
+.summary-time{font-size:11px;color:#94a3b8;margin-bottom:4px}
+.summary-text{font-size:13px;line-height:1.5;color:#1e293b}
+.summary-actions{margin-top:6px}
+.section{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>🧠 记忆与上下文</h1></div>
+
+<div class="card">
+  <h3>📌 长期记忆总结</h3>
+  <div class="row"><label>模式</label><select id="summarizeMode"><option value="auto">自动总结</option><option value="manual">手动</option></select></div>
+  <div class="row"><label>触发条数</label><input type="number" id="triggerCount" value="50" min="5"><span style="font-size:12px;color:#94a3b8">消息达到此数量后自动总结</span></div>
+  <h3>总结提示词</h3>
+  <textarea id="summaryPrompt" rows="2" placeholder="留空使用默认：请将以下对话总结为简短摘要..."></textarea>
+  <button class="btn btn-primary" id="forceSummarizeBtn">✨ 立即总结</button>
+
+  <div class="section"><h3>已有总结</h3><button class="btn btn-danger btn-sm" id="batchDeleteBtn">🗑️ 清空</button></div>
+  <div id="summaryList"></div>
+  <button class="btn btn-sm" id="aiSimplifyBtn" style="width:100%;margin-top:8px">✨ AI精简合并所有总结</button>
+</div>
+
+<div class="card">
+  <h3>💬 上下文控制</h3>
+  <div class="row"><label>记忆条数</label><input type="number" id="contextTokens" value="20" min="0"><span style="font-size:12px;color:#94a3b8">发送给AI的历史消息数</span></div>
+  <div class="row"><span>回复区间</span><input type="number" id="replyMin" value="1" min="1"> ~ <input type="number" id="replyMax" value="3" min="1"></div>
+  <div class="row" style="font-size:13px;color:#475569"><span>💬 总消息: <b id="totalMsgs">0</b></span><span>📊 Token: ~<b id="totalTokens">0</b></span></div>
+</div>
+
+<div class="card">
+  <h3>🔗 记忆互通</h3>
+  <div class="row"><span>允许与</span><select id="shareWith"><option value="">无</option></select><span>共享记忆</span></div>
+</div>
+
+<script>
+const p=new URLSearchParams(window.location.search),contactId=p.get('id');
+function esc(s){if(!s)return'';return s.replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m])}
+function getKey(){return'memory_'+contactId}
+function load(){try{return JSON.parse(localStorage.getItem(getKey())||'{}')}catch(e){return{}}}
+function save(c){localStorage.setItem(getKey(),JSON.stringify(c))}
+function getApi(){const s=localStorage.getItem('system_settings');if(!s)return null;try{const p=JSON.parse(s);return{url:p.apiUrl,key:p.apiKey,model:p.modelName||'deepseek-chat'}}catch(e){return null}}
+
+let cfg=load();
+if(!cfg.triggerCount)Object.assign(cfg,{autoSummarize:true,triggerCount:50,summaryPrompt:'',summaries:[],contextTokens:20,replyMin:1,replyMax:3,shareWith:null});
+
+function updateStats(){
+  const msgs=JSON.parse(localStorage.getItem('chat_history_'+contactId)||'[]');
+  document.getElementById('totalMsgs').textContent=msgs.length;
+  let chars=0;msgs.forEach(m=>chars+=(m.content||'').length);
+  document.getElementById('totalTokens').textContent=Math.round(chars/1.5);
+}
+
+function renderSummaries(){
+  const c=document.getElementById('summaryList');
+  if(!cfg.summaries||!cfg.summaries.length){c.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8">暂无总结</div>';return}
+  c.innerHTML=cfg.summaries.map((s,i)=>`<div class="summary-item"><div class="summary-time">${esc(s.time)}</div><div class="summary-text">${esc(s.content)}</div><div class="summary-actions"><button class="btn-sm edit-btn" data-i="${i}">编辑</button><button class="btn-sm del-btn" data-i="${i}" style="color:#dc2626">删除</button></div></div>`).join('');
+  document.querySelectorAll('.edit-btn').forEach(b=>b.onclick=()=>{const i=b.dataset.i;const t=prompt('编辑',cfg.summaries[i].content);if(t){cfg.summaries[i].content=t;save(cfg);renderSummaries()}});
+  document.querySelectorAll('.del-btn').forEach(b=>b.onclick=()=>{cfg.summaries.splice(b.dataset.i,1);save(cfg);renderSummaries()});
+}
+
+function updUI(){
+  document.getElementById('summarizeMode').value=cfg.autoSummarize?'auto':'manual';
+  document.getElementById('triggerCount').value=cfg.triggerCount;
+  document.getElementById('summaryPrompt').value=cfg.summaryPrompt||'';
+  document.getElementById('contextTokens').value=cfg.contextTokens;
+  document.getElementById('replyMin').value=cfg.replyMin;
+  document.getElementById('replyMax').value=cfg.replyMax;
+  document.getElementById('shareWith').value=cfg.shareWith||'';
+  renderSummaries();updateStats();
+}
+
+function populateContacts(){
+  const s=JSON.parse(localStorage.getItem('contacts_custom_settings')||'{}');
+  const cs=JSON.parse(localStorage.getItem('contacts')||'[]');
+  const sel=document.getElementById('shareWith');
+  cs.forEach(c=>{if(c.id!==contactId)sel.innerHTML+=`<option value="${c.id}">${esc(c.name||c.id)}</option>`});
+  sel.value=cfg.shareWith||'';
+}
+
+async function doSummarize(){
+  const api=getApi();if(!api||!api.key){alert('请先配置API');return}
+  const msgs=JSON.parse(localStorage.getItem('chat_history_'+contactId)||'[]');
+  if(msgs.length<5){alert('至少需要5条消息');return}
+  const btn=document.getElementById('forceSummarizeBtn');btn.disabled=true;btn.textContent='⏳ 总结中...';
+  try{
+    const txt=msgs.map(m=>(m.role==='user'?'用户':'AI')+': '+m.content).join('\n');
+    const prompt=(cfg.summaryPrompt||'请将以下对话总结为简短摘要，保留关键信息：')+'\n\n'+txt;
+    const r=await fetch(api.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+api.key},body:JSON.stringify({model:api.model,messages:[{role:'user',content:prompt}],max_tokens:300,temperature:.3})});
+    if(!r.ok)throw new Error('API失败');
+    const d=await r.json();const sum=d.choices?.[0]?.message?.content;
+    if(sum){if(!cfg.summaries)cfg.summaries=[];cfg.summaries.unshift({time:new Date().toLocaleString(),content:sum});save(cfg);renderSummaries()}
+  }catch(e){alert('总结失败: '+e.message)}
+  finally{btn.disabled=false;btn.textContent='✨ 立即总结'}
+}
+
+async function doSimplify(){
+  if(!cfg.summaries||!cfg.summaries.length){alert('没有可精简的总结');return}
+  const api=getApi();if(!api||!api.key){alert('请先配置API');return}
+  try{
+    const txt=cfg.summaries.map((s,i)=>(i+1)+'. '+s.content).join('\n\n');
+    const r=await fetch(api.url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+api.key},body:JSON.stringify({model:api.model,messages:[{role:'user',content:'请合并精简以下摘要，去除重复：\n\n'+txt}],max_tokens:200,temperature:.3})});
+    if(!r.ok)throw new Error('API失败');
+    const d=await r.json();const sum=d.choices?.[0]?.message?.content;
+    if(sum){cfg.summaries=[{time:new Date().toLocaleString(),content:sum}];save(cfg);renderSummaries()}
+  }catch(e){alert('精简失败: '+e.message)}
+}
+
+document.getElementById('summarizeMode').onchange=e=>{cfg.autoSummarize=e.target.value==='auto';save(cfg)};
+document.getElementById('triggerCount').onchange=e=>{cfg.triggerCount=parseInt(e.target.value)||50;save(cfg)};
+document.getElementById('summaryPrompt').oninput=e=>{cfg.summaryPrompt=e.target.value;save(cfg)};
+document.getElementById('contextTokens').onchange=e=>{cfg.contextTokens=parseInt(e.target.value)||20;save(cfg)};
+document.getElementById('replyMin').onchange=e=>{cfg.replyMin=Math.min(parseInt(e.target.value)||1,cfg.replyMax);save(cfg);updUI()};
+document.getElementById('replyMax').onchange=e=>{cfg.replyMax=Math.max(parseInt(e.target.value)||3,cfg.replyMin);save(cfg);updUI()};
+document.getElementById('shareWith').onchange=e=>{cfg.shareWith=e.target.value||null;save(cfg)};
+document.getElementById('forceSummarizeBtn').onclick=doSummarize;
+document.getElementById('aiSimplifyBtn').onclick=doSimplify;
+document.getElementById('batchDeleteBtn').onclick=()=>{cfg.summaries=[];save(cfg);renderSummaries()};
+
+populateContacts();updUI();
+</script>
+</body>
+</html>

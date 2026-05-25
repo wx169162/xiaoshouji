@@ -575,6 +575,96 @@
         document.getElementById('myAvatarCard').onclick = () => showAvatarPicker(newMyAvatar, v => { if(v) { newMyAvatar=v; updateAvatars(); } });
         document.getElementById('blockToggleBtn').onclick = () => { const nb = !settings.isBlocked; updateContactSettings(currentContact.id, { isBlocked: nb }); renderFullPage(); };
 
+        // 总结列表渲染
+        function renderSummaryList() { 
+            const containerEl = document.getElementById('summaryListContainer'); 
+            if(!containerEl) return; 
+            if(!tempMemory.summaries) tempMemory.summaries = []; 
+            containerEl.innerHTML = tempMemory.summaries.map((s, idx) => `<div class="summary-item" data-idx="${idx}"><div class="summary-time">${s.time || '刚刚'}</div><div class="summary-text">${escapeHtml(s.content)}</div><div class="summary-actions"><button class="mini-btn editSummaryBtn" data-idx="${idx}">编辑</button><button class="mini-btn deleteSummaryBtn" data-idx="${idx}">删除</button><button class="mini-btn simplifySummaryBtn" data-idx="${idx}">精简</button></div></div>`).join('') || '<div style="text-align:center;padding:20px">暂无总结</div>';
+            document.querySelectorAll('.editSummaryBtn').forEach(btn => { btn.onclick = () => { const idx = btn.dataset.idx; const newText = prompt('编辑总结内容', tempMemory.summaries[idx].content); if(newText) { tempMemory.summaries[idx].content = newText; renderSummaryList(); } }; });
+            document.querySelectorAll('.deleteSummaryBtn').forEach(btn => { btn.onclick = () => { const idx = btn.dataset.idx; tempMemory.summaries.splice(idx,1); renderSummaryList(); }; });
+            document.querySelectorAll('.simplifySummaryBtn').forEach(btn => { btn.onclick = () => alert('精简功能占位'); });
+        }
+        
+        // 真正的总结函数
+        function getApiConfigForSettings() { const s = localStorage.getItem('system_settings'); if (!s) return null; try { const p = JSON.parse(s); return { apiUrl: p.apiUrl, apiKey: p.apiKey, model: p.modelName || 'deepseek-chat' }; } catch(e) { return null; } }
+        async function performSummarization() {
+            const config = getApiConfigForSettings(); if (!config || !config.apiKey) { alert('请先在桌面设置中配置API'); return; }
+            const msgs = JSON.parse(localStorage.getItem(`chat_history_${currentContact.id}`) || '[]');
+            if (msgs.length < 5) { alert('至少需要5条消息才能总结'); return; }
+            document.getElementById('forceSummarizeBtn').disabled = true;
+            document.getElementById('forceSummarizeBtn').textContent = '⏳ 总结中...';
+            try {
+                const chatText = msgs.map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`).join('\n');
+                const prompt = (tempMemory.summaryPrompt || '请将以下对话内容总结为一段简短的摘要，保留关键信息：') + '\n\n对话内容：\n' + chatText;
+                const resp = await fetch(config.apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` }, body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.3 }) });
+                if (!resp.ok) throw new Error('API请求失败');
+                const data = await resp.json();
+                const summary = data.choices?.[0]?.message?.content;
+                if (summary) {
+                    if (!tempMemory.summaries) tempMemory.summaries = [];
+                    tempMemory.summaries.unshift({ time: new Date().toLocaleString(), content: summary });
+                    renderSummaryList();
+                }
+            } catch(e) { alert('总结失败: ' + e.message); }
+            finally { document.getElementById('forceSummarizeBtn').disabled = false; document.getElementById('forceSummarizeBtn').textContent = '✨ 立即总结'; }
+        }
+        async function simplifySelectedSummaries() {
+            const config = getApiConfigForSettings(); if (!config || !config.apiKey) { alert('请先配置API'); return; }
+            if (!tempMemory.summaries || tempMemory.summaries.length === 0) { alert('没有可精简的总结'); return; }
+            const selectedContent = tempMemory.summaries.map((s, i) => `${i+1}. ${s.content}`).join('\n\n');
+            try {
+                const resp = await fetch(config.apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` }, body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: '请将以下多条摘要合并精简为一条简洁的总结，去除重复信息：\n\n' + selectedContent }], max_tokens: 200, temperature: 0.3 }) });
+                if (!resp.ok) throw new Error('API请求失败');
+                const data = await resp.json();
+                const result = data.choices?.[0]?.message?.content;
+                if (result) { tempMemory.summaries = [{ time: new Date().toLocaleString(), content: result }]; renderSummaryList(); }
+            } catch(e) { alert('精简失败: ' + e.message); }
+        }
+
+        // 记忆控件绑定
+        document.getElementById('triggerCountInput').addEventListener('change', (e) => { let val = parseInt(e.target.value); if (isNaN(val)) val = 50; tempMemory.triggerCount = val; });
+        document.getElementById('contextTokensInput').addEventListener('change', (e) => { let val = parseInt(e.target.value); if (isNaN(val)) val = 20; tempMemory.contextTokens = val; });
+        document.getElementById('forceSummarizeBtn').onclick = () => performSummarization();
+        document.getElementById('aiSimplifySelected').onclick = () => simplifySelectedSummaries();
+        document.getElementById('batchDeleteSummaries').onclick = () => { tempMemory.summaries = []; renderSummaryList(); };
+        document.getElementById('summarizeMode').onchange = (e) => { tempMemory.autoSummarize = e.target.value === 'auto'; };
+        document.getElementById('summaryPrompt').oninput = (e) => { tempMemory.summaryPrompt = e.target.value; };
+        document.getElementById('shareWithSelect').onchange = (e) => { tempMemory.shareWith = e.target.value || null; };
+        document.getElementById('replyMin').onchange = (e) => { let v = parseInt(e.target.value); if(isNaN(v)) v=1; tempMemory.replyMin = Math.min(v, tempMemory.replyMax); };
+        document.getElementById('replyMax').onchange = (e) => { let v = parseInt(e.target.value); if(isNaN(v)) v=3; tempMemory.replyMax = Math.max(v, tempMemory.replyMin); };
+        renderSummaryList();
+
+        // 表情包标签页
+        let currentTab = 'global';
+        function renderEmojiTab(type) {
+            const emojiContainer = document.getElementById('emojiTabContent'); if(!emojiContainer) return;
+            const list = type === 'global' ? tempGlobalEmojis : tempCustomEmojis;
+            emojiContainer.innerHTML = `<div class="emoji-grid" id="emojiGrid">${list.map((e,i)=>`<label class="emoji-card"><input type="checkbox" class="emoji-checkbox" data-emoji-idx="${i}" data-type="${type}"> <span>${e.url || '😊'} ${escapeHtml(e.name)}</span></label>`).join('')}</div><div class="row-flex"><button id="moveEmojiBtn" class="mini-btn">➡️ 移动到</button><button id="copyEmojiBtn" class="mini-btn">📋 复制到</button><button id="deleteEmojiBtn" class="mini-btn danger-btn">删除选中</button><button id="selectAllEmoji" class="mini-btn">全选</button></div>`;
+            document.getElementById('moveEmojiBtn').onclick = () => alert('移动到其他角色占位');
+            document.getElementById('copyEmojiBtn').onclick = () => alert('复制到其他角色占位');
+            document.getElementById('deleteEmojiBtn').onclick = () => { const checks = [...document.querySelectorAll('.emoji-checkbox:checked')]; const globalIdx = checks.filter(c => c.dataset.type==='global').map(c => parseInt(c.dataset.emojiIdx)).sort((a,b)=>b-a); const customIdx = checks.filter(c => c.dataset.type==='custom').map(c => parseInt(c.dataset.emojiIdx)).sort((a,b)=>b-a); globalIdx.forEach(idx => tempGlobalEmojis.splice(idx,1)); customIdx.forEach(idx => tempCustomEmojis.splice(idx,1)); renderEmojiTab(type); };
+            document.getElementById('selectAllEmoji').onclick = () => { document.querySelectorAll('.emoji-checkbox').forEach(c => c.checked=true); };
+        }
+        document.getElementById('tabGlobalEmoji').onclick = () => { currentTab='global'; renderEmojiTab('global'); document.getElementById('tabGlobalEmoji').style.background='#007aff'; document.getElementById('tabCustomEmoji').style.background='#f2f2f6'; };
+        document.getElementById('tabCustomEmoji').onclick = () => { currentTab='custom'; renderEmojiTab('custom'); document.getElementById('tabCustomEmoji').style.background='#007aff'; document.getElementById('tabGlobalEmoji').style.background='#f2f2f6'; };
+        renderEmojiTab('global');
+        document.getElementById('uploadLocalEmoji').onclick = () => { const name = prompt('表情名称'); if(name) { const url = prompt('表情符号或图片URL'); if(url) { const newEmoji = { id: Date.now().toString(), name, url }; if(currentTab==='global') tempGlobalEmojis.push(newEmoji); else tempCustomEmojis.push(newEmoji); renderEmojiTab(currentTab); } } };
+        document.getElementById('uploadUrlEmoji').onclick = () => { const name = prompt('表情名称'); const url = prompt('图片URL'); if(name && url) { const newEmoji = { id: Date.now().toString(), name, url }; if(currentTab==='global') tempGlobalEmojis.push(newEmoji); else tempCustomEmojis.push(newEmoji); renderEmojiTab(currentTab); } };
+
+        // 外观绑定（不重新渲染页面，只更新预览）
+        document.getElementById('bgColorBtn').onclick = () => { const c = prompt('背景颜色(#RRGGBB)', '#f0f0f0'); if(c){ tempAppearance.bgType='color'; tempAppearance.bgValue=c; updateAppearancePreview(); } };
+        document.getElementById('bgGradientBtn').onclick = () => { tempAppearance.bgType='gradient'; tempAppearance.bgValue='linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; updateAppearancePreview(); };
+        document.getElementById('bgImageBtn').onclick = () => { const url = prompt('图片URL'); if(url){ tempAppearance.bgType='image'; tempAppearance.bgValue=url; updateAppearancePreview(); } };
+        document.getElementById('bubbleRound').onclick = () => { tempAppearance.bubbleStyle='round'; updateAppearancePreview(); };
+        document.getElementById('bubbleSquare').onclick = () => { tempAppearance.bubbleStyle='square'; updateAppearancePreview(); };
+        document.getElementById('fontSizeInput').addEventListener('change', (e) => { let val = parseInt(e.target.value); if(isNaN(val)) val=16; if(val<12) val=12; if(val>24) val=24; tempAppearance.fontSize = val; updateAppearancePreview(); });
+        
+        // 数据操作按钮
+        document.getElementById('importChatBtn').onclick = () => alert('导入聊天记录占位');
+        document.getElementById('exportChatBtn').onclick = () => { const key=`chat_history_${currentContact.id}`; const data=localStorage.getItem(key); const blob=new Blob([data||'[]'],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`chat_${currentContact.id}.json`; a.click(); };
+        document.getElementById('clearChatDataBtn').onclick = () => { if(confirm('清空所有聊天记录?')) clearChatHistory(currentContact.id); alert('已清空'); renderFullPage(); };
+        document.getElementById('deleteRoleFinalBtn').onclick = () => { if(confirm('彻底删除角色所有数据？')){ deleteRole(currentContact.id); window.location.href='../index.html'; } };
     }
 
     function init() {
@@ -595,9 +685,13 @@
                 callPrefer: document.getElementById('callPrefer').value, 
                 rolePersona: document.getElementById('rolePersona').value, 
                 userPersona: document.getElementById('userPersona').value, 
-                worldBook: document.getElementById('worldBook').value
+                worldBook: document.getElementById('worldBook').value 
             });
-            alert('角色信息已保存');
+            saveMemoryConfig(currentContact.id, tempMemory);
+            saveEmojiGlobal(tempGlobalEmojis);
+            saveEmojiCustom(currentContact.id, tempCustomEmojis);
+            saveAppearance(currentContact.id, tempAppearance);
+            alert('所有设置已保存');
         };
         
         document.getElementById('backBtn').addEventListener('click', () => { window.location.href = `../room.html?id=${currentContact.id}`; });

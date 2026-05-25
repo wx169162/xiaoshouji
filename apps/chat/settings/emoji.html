@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>表情包管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:#f5f7fb;padding:16px;min-height:100vh}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.back-btn{background:#fff;border:1px solid #e2e8f0;padding:10px 16px;border-radius:24px;font-size:15px;cursor:pointer;color:#1e293b}
+h1{font-size:22px;font-weight:600}
+.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.tabs{display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid #e2e8f0;padding-bottom:12px}
+.tab{padding:8px 16px;border:none;border-radius:16px;font-size:14px;cursor:pointer;background:#f1f5f9;color:#1e293b}
+.tab.active{background:#007aff;color:#fff}
+.tab:active{transform:scale(.96)}
+.emoji-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.emoji-card{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f8fafc;border-radius:14px;font-size:14px;cursor:pointer}
+.emoji-card input{margin:0}
+.btn-sm{padding:8px 16px;border:none;border-radius:16px;font-size:13px;cursor:pointer;background:#f1f5f9;color:#1e293b;margin-right:6px}
+.btn-sm.danger{background:#fee2e2;color:#dc2626}
+.btn-sm:active{transform:scale(.95)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>😜 表情包管理</h1></div>
+
+<div class="card">
+  <div class="tabs"><button class="tab active" id="tabGlobal">🌍 全局表情</button><button class="tab" id="tabCustom">🎭 角色专属</button></div>
+  <div class="emoji-grid" id="emojiGrid"></div>
+  <div class="actions">
+    <button class="btn-sm" id="addEmojiBtn">➕ 添加表情</button>
+    <button class="btn-sm" id="selectAllBtn">☑️ 全选</button>
+    <button class="btn-sm danger" id="deleteBtn">🗑️ 删除选中</button>
+  </div>
+</div>
+
+<script>
+const p=new URLSearchParams(window.location.search),contactId=p.get('id');
+let currentTab='global',globalEmojis=[],customEmojis=[];
+
+function esc(s){if(!s)return'';return s.replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m])}
+function loadEmojis(){try{globalEmojis=JSON.parse(localStorage.getItem('emoji_global')||'[]')}catch(e){globalEmojis=[]};try{customEmojis=JSON.parse(localStorage.getItem('emoji_'+contactId)||'[]')}catch(e){customEmojis=[]}}
+function save(){localStorage.setItem('emoji_global',JSON.stringify(globalEmojis));localStorage.setItem('emoji_'+contactId,JSON.stringify(customEmojis))}
+function render(){
+  const list=currentTab==='global'?globalEmojis:customEmojis,grid=document.getElementById('emojiGrid');
+  if(!list.length){grid.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;width:100%">暂无表情，点击添加</div>';return}
+  grid.innerHTML=list.map((e,i)=>`<label class="emoji-card"><input type="checkbox" class="emoji-cb" data-i="${i}"><span>${esc(e.url||'😊')} ${esc(e.name)}</span></label>`).join('');
+}
+document.getElementById('tabGlobal').onclick=()=>{currentTab='global';document.getElementById('tabGlobal').classList.add('active');document.getElementById('tabCustom').classList.remove('active');render()};
+document.getElementById('tabCustom').onclick=()=>{currentTab='custom';document.getElementById('tabCustom').classList.add('active');document.getElementById('tabGlobal').classList.remove('active');render()};
+document.getElementById('addEmojiBtn').onclick=()=>{
+  const name=prompt('表情名称');if(!name)return;const url=prompt('表情符号或URL','😊');if(!url)return;
+  const emoji={id:Date.now().toString(),name,url};
+  if(currentTab==='global')globalEmojis.push(emoji);else customEmojis.push(emoji);
+  save();render();
+};
+document.getElementById('selectAllBtn').onclick=()=>document.querySelectorAll('.emoji-cb').forEach(c=>c.checked=true);
+document.getElementById('deleteBtn').onclick=()=>{
+  const checks=[...document.querySelectorAll('.emoji-cb:checked')];
+  if(!checks.length)return;
+  const idxs=checks.map(c=>parseInt(c.dataset.i)).sort((a,b)=>b-a);
+  const arr=currentTab==='global'?globalEmojis:customEmojis;
+  idxs.forEach(i=>arr.splice(i,1));save();render();
+};
+
+loadEmojis();render();
+</script>
+</body>
+</html>
