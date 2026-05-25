@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>消息 - AI聊天</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        /* ========= 主内容区 ========= */
+        .main {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app.drawer-open .main {
+            transform: translateX(280px);
+        }
+
+        /* ========= 顶部栏 ========= */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background-color: #ffffff;
+            border-bottom: 0.5px solid #e9e9ef;
+            height: 56px;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            min-width: 44px;
+        }
+
+        .back-to-desktop {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #007aff;
+            cursor: pointer;
+            border-radius: 8px;
+            background: #f2f2f6;
+            transition: all 0.2s;
+        }
+
+        .back-to-desktop:active {
+            background: #e5e5ea;
+            transform: scale(0.95);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1c1c1e;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 80px;
+            justify-content: flex-end;
+        }
+
+        .avatar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-size: 18px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .avatar-btn:active {
+            opacity: 0.7;
+            transform: scale(0.95);
+        }
+
+        .plus-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #007aff;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        .plus-btn:active {
+            background: #f2f2f6;
+            transform: scale(0.95);
+        }
+
+        /* ========= 页面容器 ========= */
+        .pages-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background: #f8f8fa;
+            overflow-y: auto;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        /* 消息列表样式 */
+        .message-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: white;
+            border-bottom: 0.5px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-item:active {
+            background: #f8f8fa;
+        }
+
+        .chat-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-right: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-name-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .chat-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1c1c1e;
+        }
+
+        .chat-time {
+            font-size: 11px;
+            color: #8e8e93;
+        }
+
+        .chat-preview {
+            font-size: 13px;
+            color: #8e8e93;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 联系人列表样式 */
+        .contacts-list {
+            padding: 8px 0;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            background: white;
+            border-bottom: 0.5px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .contact-item:active {
+            background: #f8f8fa;
+        }
+
+        .contact-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-size: 17px;
+            font-weight: 500;
+            color: #1c1c1e;
+            margin-bottom: 4px;
+        }
+
+        .contact-desc {
+            font-size: 13px;
+            color: #8e8e93;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-top: 0.5px solid #e9e9ef;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 8px 16px 10px;
+            height: 68px;
+            flex-shrink: 0;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: color 0.2s;
+            color: #8e8e93;
+            font-size: 10px;
+        }
+
+        .nav-item.active {
+            color: #007aff;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* 侧拉栏样式 */
+        .drawer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 20;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .app.drawer-open .drawer {
+            transform: translateX(0);
+        }
+
+        .drawer-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 15;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+
+        .app.drawer-open .drawer-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .drawer-header {
+            padding: 40px 20px 24px;
+            text-align: center;
+        }
+
+        .drawer-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .drawer-name {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .online-status {
+            font-size: 13px;
+            color: #34c759;
+            background: #e8f5ea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        .drawer-menu {
+            padding: 12px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 24px;
+            gap: 16px;
+            cursor: pointer;
+        }
+
+        .menu-item:active {
+            background: #f8f8fa;
+        }
+
+        .drawer-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: #f2f2f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .page-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #8e8e93;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <!-- 侧拉栏 -->
+    <div class="drawer" id="drawer">
+        <div class="drawer-close" id="drawerClose">✕</div>
+        <div class="drawer-header">
+            <div class="drawer-avatar">😊</div>
+            <div class="drawer-name">我的账号</div>
+            <div class="online-status">● 在线</div>
+        </div>
+        <div class="drawer-menu">
+            <div class="menu-item" data-action="profile">📋 我的资料</div>
+            <div class="menu-item" data-action="favorites">⭐ 收藏</div>
+            <div class="menu-item" data-action="settings">⚙️ 设置</div>
+            <div class="menu-item" data-action="logout">🚪 退出登录</div>
+        </div>
+    </div>
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+
+    <!-- 主内容区 -->
+    <div class="main" id="main">
+        <div class="header" id="mainHeader">
+            <div class="header-left">
+                <div class="back-to-desktop" id="backToDesktopBtn">←</div>
+            </div>
+            <div class="header-title" id="headerTitle">消息</div>
+            <div class="header-right">
+                <div class="avatar-btn" id="avatarBtn">😀</div>
+                <div class="plus-btn" id="plusBtn">+</div>
+            </div>
+        </div>
+
+        <div class="pages-container">
+            <!-- 消息页 -->
+            <div class="page active" id="pageMessages" data-page="messages">
+                <div id="messageListContainer" class="message-list"></div>
+            </div>
+
+            <!-- 联系人页 -->
+            <div class="page" id="pageContacts" data-page="contacts">
+                <div class="contacts-list" id="contactsListContainer"></div>
+            </div>
+
+            <!-- 动态页 -->
+            <div class="page" id="pageMoments" data-page="moments">
+                <div style="padding: 40px 20px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📱</div>
+                    <div style="font-size: 18px; font-weight: 500;">动态页开发中</div>
+                    <div style="font-size: 14px; color: #8e8e93; margin-top: 8px;">朋友圈功能敬请期待</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active" data-nav="messages"><div class="nav-icon">💬</div><div class="nav-label">消息</div></div>
+            <div class="nav-item" data-nav="contacts"><div class="nav-icon">👤</div><div class="nav-label">联系人</div></div>
+            <div class="nav-item" data-nav="moments"><div class="nav-icon">🌟</div><div class="nav-label">动态</div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ======================== AI 角色数据定义 ========================
+    const AI_CONTACTS = [
+        { id: 'ai_general', name: '通用助手', avatar: '🤖', desc: '全能AI助手，解答日常问题', role: 'general' },
+        { id: 'ai_coding', name: '编程助手', avatar: '💻', desc: '专注代码、调试和技术问答', role: 'coding' },
+        { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', desc: '倾听心声，提供情绪支持', role: 'psychologist' }
+    ];
+
+    // 聊天记录存储
+    let chatHistory = {};
+
+    // 初始化聊天记录
+    AI_CONTACTS.forEach(contact => {
+        if (!chatHistory[contact.id]) {
+            chatHistory[contact.id] = [];
+        }
+    });
+
+    // 辅助函数: 获取当前时间字符串
+    function getCurrentTimeString() {
+        const now = new Date();
+        return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // 添加消息
+    function addMessage(contactId, text, sender) {
+        const message = {
+            id: Date.now() + Math.random(),
+            text: text,
+            sender: sender,
+            timestamp: getCurrentTimeString(),
+            fullDate: new Date()
+        };
+        if (!chatHistory[contactId]) chatHistory[contactId] = [];
+        chatHistory[contactId].push(message);
+        saveChatsToLocal();
+        renderMessageList();
+        renderContactsList();
+        return message;
+    }
+
+    // 保存到 localStorage
+    function saveChatsToLocal() {
+        try {
+            localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+        } catch(e) { console.warn(e); }
+    }
+
+    function loadChatsFromLocal() {
+        const saved = localStorage.getItem('ai_chat_history');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                for (let key in parsed) {
+                    if (chatHistory[key] !== undefined || AI_CONTACTS.some(c => c.id === key)) {
+                        chatHistory[key] = parsed[key];
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+
+    // 获取联系人信息
+    function getContactById(id) {
+        return AI_CONTACTS.find(c => c.id === id);
+    }
+
+    // 渲染消息列表
+    function renderMessageList() {
+        const container = document.getElementById('messageListContainer');
+        if (!container) return;
+        
+        const messageItems = AI_CONTACTS.map(contact => {
+            const messages = chatHistory[contact.id] || [];
+            const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+            let preview = lastMsg ? (lastMsg.sender === 'user' ? `我: ${lastMsg.text}` : `${contact.name}: ${lastMsg.text}`) : '暂无消息，点击开始聊天';
+            let timeStr = lastMsg ? lastMsg.timestamp : '';
+            return {
+                id: contact.id,
+                name: contact.name,
+                avatar: contact.avatar,
+                preview: preview,
+                time: timeStr
+            };
+        });
+        
+        if (messageItems.length === 0) {
+            container.innerHTML = '<div style="padding:40px;text-align:center;color:#8e8e93;">暂无消息记录</div>';
+            return;
+        }
+        
+        container.innerHTML = messageItems.map(item => `
+            <div class="chat-item" data-contact-id="${item.id}">
+                <div class="chat-avatar">${item.avatar}</div>
+                <div class="chat-info">
+                    <div class="chat-name-row">
+                        <span class="chat-name">${escapeHtml(item.name)}</span>
+                        <span class="chat-time">${item.time}</span>
+                    </div>
+                    <div class="chat-preview">${escapeHtml(item.preview)}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        // 绑定点击事件 - 跳转到 room.html（同一目录下）
+        document.querySelectorAll('#messageListContainer .chat-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const contactId = el.getAttribute('data-contact-id');
+                // 使用相对路径，跳转到同一目录下的 room.html
+                window.location.href = `room.html?id=${contactId}`;
+            });
+        });
+    }
+    
+    // 渲染联系人列表
+    function renderContactsList() {
+        const container = document.getElementById('contactsListContainer');
+        if (!container) return;
+        container.innerHTML = AI_CONTACTS.map(contact => `
+            <div class="contact-item" data-contact-id="${contact.id}">
+                <div class="contact-avatar">${contact.avatar}</div>
+                <div class="contact-info">
+                    <div class="contact-name">${escapeHtml(contact.name)}</div>
+                    <div class="contact-desc">${escapeHtml(contact.desc)}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('#contactsListContainer .contact-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const contactId = el.getAttribute('data-contact-id');
+                // 使用相对路径，跳转到同一目录下的 room.html
+                window.location.href = `room.html?id=${contactId}`;
+            });
+        });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // ======================== 页面导航和侧拉栏逻辑 ========================
+    let isDrawerOpen = false;
+    const appEl = document.getElementById('app');
+    const avatarBtn = document.getElementById('avatarBtn');
+    const backToDesktopBtn = document.getElementById('backToDesktopBtn');
+    const plusBtn = document.getElementById('plusBtn');
+    const drawerClose = document.getElementById('drawerClose');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    
+    function openDrawer() { if (!isDrawerOpen) { isDrawerOpen = true; appEl.classList.add('drawer-open'); } }
+    function closeDrawer() { if (isDrawerOpen) { isDrawerOpen = false; appEl.classList.remove('drawer-open'); } }
+    function toggleDrawer() { isDrawerOpen ? closeDrawer() : openDrawer(); }
+    
+    function switchToPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page${pageId.charAt(0).toUpperCase() + pageId.slice(1)}`).classList.add('active');
+        const titles = { messages: '消息', contacts: '联系人', moments: '动态' };
+        document.getElementById('headerTitle').innerText = titles[pageId];
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-nav') === pageId) item.classList.add('active');
+        });
+        if (pageId === 'messages') renderMessageList();
+        if (pageId === 'contacts') renderContactsList();
+        closeDrawer();
+    }
+    
+    // 底部导航事件
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const nav = item.getAttribute('data-nav');
+            if (nav) switchToPage(nav);
+        });
+    });
+    
+    if (avatarBtn) avatarBtn.addEventListener('click', toggleDrawer);
+    if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+    if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
+    if (plusBtn) plusBtn.addEventListener('click', () => alert('更多功能开发中~'));
+    
+    // 【修复】返回桌面按钮 - 直接跳转到根目录的桌面
+    if (backToDesktopBtn) {
+        backToDesktopBtn.addEventListener('click', () => {
+            window.location.href = '../../index.html';
+        });
+    }
+    
+    // 侧拉栏菜单简单提示
+    document.querySelectorAll('.menu-item').forEach(menu => {
+        menu.addEventListener('click', () => { alert('功能开发中'); closeDrawer(); });
+    });
+    
+    // 初始化
+    function init() {
+        loadChatsFromLocal();
+        renderMessageList();
+        renderContactsList();
+        
+        // 如果没有欢迎语，添加一条默认
+        if (chatHistory['ai_general'] && chatHistory['ai_general'].length === 0) {
+            setTimeout(() => {
+                addMessage('ai_general', '你好！我是通用助手，有什么可以帮你的吗？', 'ai');
+            }, 100);
+        }
+    }
+    
+    init();
+</script>
+</body>
+</html>

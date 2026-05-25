@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>智能桌面设置中心 | 自动识别API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px 12px 40px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        /* 顶部导航栏 */
+        .nav-header {
+            position: sticky;
+            top: 0;
+            background: inherit;
+            z-index: 100;
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .back-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 40px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+        
+        .back-nav-btn:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.7);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .back-nav-btn {
+                background: rgba(30, 30, 47, 0.9);
+                color: #eef2ff;
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+            }
+            .card {
+                background-color: #1e1e2f;
+                border-color: #2c2c3a;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            .card-title {
+                color: #eef2ff;
+            }
+            .label-text, .setting-label span, .backup-label, .storage-info span {
+                color: #cdd9f4;
+            }
+            input, select, textarea, .slider-value {
+                background-color: #2a2a36;
+                border-color: #3e3e4e;
+                color: #f0f0f0;
+            }
+            .helper-text, .auto-badge {
+                color: #9ca3af;
+            }
+            button.primary-btn {
+                background-color: #2c6e9e;
+            }
+            button.secondary-btn {
+                background-color: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+            .switch-bg {
+                background-color: #4b5563;
+            }
+            .switch-bg.active {
+                background-color: #2c6e9e;
+            }
+            hr {
+                border-color: #2c2c3a;
+            }
+            .status-badge {
+                background: #2d3748;
+                color: #b9c7d9;
+            }
+            .auto-detect-tag {
+                background: #2c3e50;
+            }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            padding: 20px 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2f6;
+            transition: all 0.2s;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1f2937;
+            border-left: 4px solid #3b82f6;
+            padding-left: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .label-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+            color: #2c3e50;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            background-color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-wrapper input {
+            padding-right: 48px;
+        }
+        .toggle-pwd {
+            position: absolute;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0 4px;
+            z-index: 2;
+        }
+
+        .row-flex {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        button {
+            padding: 10px 16px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        button.primary-btn {
+            background-color: #3b82f6;
+            color: white;
+        }
+        button.secondary-btn {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+        }
+        button.warning-btn {
+            background-color: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fed7aa;
+        }
+        button.danger-outline {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+        button.sm-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .helper-text {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .switch-bg {
+            width: 48px;
+            height: 26px;
+            background-color: #cbd5e1;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .switch-bg.active {
+            background-color: #3b82f6;
+        }
+        .switch-knob {
+            width: 22px;
+            height: 22px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .switch-bg.active .switch-knob {
+            transform: translateX(22px);
+        }
+
+        .slider-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        input[type="range"] {
+            flex: 1;
+            padding: 0;
+            height: 5px;
+            border-radius: 5px;
+        }
+        .slider-value {
+            min-width: 45px;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+
+        .backup-options {
+            background-color: #f8fafc;
+            border-radius: 18px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 10px 0;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+        .storage-bar {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        hr {
+            margin: 18px 0;
+            border: 0.5px solid #eef2f6;
+        }
+        .grey-placeholder {
+            color: #8b9cb0;
+            background: #f1f5f9;
+            padding: 14px;
+            border-radius: 18px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293be6;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            transition: 0.2s;
+        }
+        footer {
+            margin-top: 12px;
+            text-align: center;
+        }
+        .save-footer {
+            position: sticky;
+            bottom: 12px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            padding: 8px;
+            width: fit-content;
+            margin: 8px auto 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        @media (prefers-color-scheme: dark) {
+            .save-footer {
+                background: #1e1e2fe6;
+            }
+            .storage-bar {
+                background: #2a2a36;
+            }
+            .backup-options {
+                background: #252532;
+            }
+        }
+        .model-badge {
+            font-size: 0.7rem;
+            background: #e0e7ff;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 返回按钮 -->
+    <div class="nav-header">
+        <div class="back-nav-btn" id="backToDesktopBtn">
+            ← 返回桌面
+        </div>
+    </div>
+    
+    <!-- 1. 语言模型接入 -->
+    <div class="card">
+        <div class="card-title">🤖 语言模型接入 <span class="model-badge">✨ 智能识别Key</span></div>
+        <div class="form-group">
+            <span class="label-text">主模型下拉</span>
+            <select id="mainModelSelect">
+                <option value="DeepSeek">DeepSeek</option>
+                <option value="OpenAI">OpenAI</option>
+                <option value="Claude">Claude</option>
+                <option value="其他">其他（手动配置）</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <span class="label-text">API地址 <span style="font-weight:normal; font-size:0.7rem;">(可手动修改)</span></span>
+            <input type="text" id="apiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
+            <div class="helper-text">💡 粘贴API Key后自动识别服务商并填充地址和模型</div>
+        </div>
+        <div class="form-group">
+            <span class="label-text">API Key</span>
+            <div class="password-wrapper">
+                <input type="password" id="apiKey" placeholder="sk-xxxxxxxx 或 api-xxx" autocomplete="off">
+                <button class="toggle-pwd" data-target="apiKey" type="button">👁️</button>
+            </div>
+            <div id="autoDetectHint" class="helper-text" style="color:#3b82f6;"></div>
+        </div>
+        <div class="row-flex" style="gap:8px; flex-wrap:wrap">
+            <div style="flex:1"><span class="label-text">模型名称 <span id="modelAutoBadge" style="font-size:0.7rem;"></span></span><input type="text" id="modelName" placeholder="deepseek-chat"></div>
+            <div style="flex:1"><span class="label-text">备用模型(识图预留)</span><input type="text" id="backupModel" placeholder="预留字段"></div>
+        </div>
+        <button id="testConnBtn" class="primary-btn" style="width:100%; margin-top:6px">🔌 测试连接</button>
+    </div>
+
+    <!-- 2. 语音服务 MiniMax -->
+    <div class="card">
+        <div class="card-title">🎤 语音服务 (MiniMax)</div>
+        <div class="toggle-switch">
+            <span class="label-text">语音开关</span>
+            <div id="voiceToggle" class="switch-bg">
+                <div class="switch-knob"></div>
+            </div>
+        </div>
+        <div class="form-group"><span class="label-text">API地址</span><input type="text" id="ttsApiUrl" value="https://api.minimax.chat/v1/text_to_speech"></div>
+        <div class="form-group"><span class="label-text">API Key</span><div class="password-wrapper"><input type="password" id="ttsKey" placeholder="MiniMax Key"><button class="toggle-pwd" data-target="ttsKey" type="button">👁️</button></div></div>
+        <div class="form-group"><span class="label-text">语音音色</span><select id="voiceType"><option value="温柔女声">温柔女声</option><option value="可爱女声">可爱女声</option><option value="沉稳男声">沉稳男声</option><option value="自定义">自定义(预留)</option></select></div>
+        <div class="form-group"><span class="label-text">语速</span><div class="slider-container"><input type="range" id="speedSlider" min="0.5" max="2.0" step="0.05" value="1.0"><span id="speedVal" class="slider-value">1.0</span></div></div>
+        <div class="form-group"><span class="label-text">音量</span><div class="slider-container"><input type="range" id="volumeSlider" min="0" max="100" value="80"><span id="volumeVal" class="slider-value">80</span></div></div>
+        <button id="testTtsBtn" class="secondary-btn" style="width:100%">🔊 播放测试语音</button>
+    </div>
+
+    <!-- 3. 图像生成服务 -->
+    <div class="card">
+        <div class="card-title">🖼️ 图像生成服务</div>
+        <div class="grey-placeholder">⏸️ 待定，等待后续支持</div>
+    </div>
+
+    <!-- 4. 存储与备份 -->
+    <div class="card">
+        <div class="card-title">💾 存储与备份</div>
+        <div class="form-group"><span class="label-text">备份位置</span><select id="backupLocation"><option value="本地备份">本地备份</option><option value="云端备份" disabled>云端备份(预留)</option><option value="网盘备份" disabled>网盘备份(预留)</option></select></div>
+        <div class="backup-options">
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="dailyBackup" checked> 每日备份</label>
+                <label><input type="checkbox" id="weeklyBackup"> 每周备份</label>
+                <label><input type="checkbox" id="exitBackup"> 退出时备份</label>
+            </div>
+            <div class="form-group" style="margin-bottom:0"><span class="label-text">备份时间 (每日)</span><input type="time" id="backupTime" value="03:00"></div>
+        </div>
+        <div class="button-group">
+            <button id="backupNowBtn" class="secondary-btn sm-btn">📀 立即备份</button>
+            <button id="restoreBackupBtn" class="secondary-btn sm-btn">♻️ 恢复备份</button>
+            <button id="viewBackupListBtn" class="secondary-btn sm-btn">📋 查看备份列表</button>
+        </div>
+        <div class="storage-bar">
+            <div><span>📦 当前数据大小: </span><span id="storageSize">0 KB</span></div>
+            <div class="button-group" style="margin-top:10px">
+                <button id="clearCacheBtn" class="warning-btn sm-btn">🗑️ 清理缓存</button>
+                <button id="exportAllDataBtn" class="secondary-btn sm-btn">📤 导出全部数据</button>
+                <button id="importDataBtn" class="secondary-btn sm-btn">📂 导入数据(合并)</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none">
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 全局设置 -->
+    <div class="card">
+        <div class="card-title">⚙️ 全局设置</div>
+        <div class="form-group"><span class="label-text">默认语言</span><select id="defaultLang"><option value="简体中文">简体中文</option><option value="繁体中文">繁体中文</option><option value="English">English</option></select></div>
+        <div class="toggle-switch"><span class="label-text">调试模式 (console日志)</span><div id="debugToggle" class="switch-bg"><div class="switch-knob"></div></div></div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <footer>
+        <div class="save-footer">
+            <button id="saveAllSettingsBtn" class="primary-btn" style="padding:10px 28px;">💾 保存全部设置</button>
+        </div>
+    </footer>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const STORAGE_KEY = "system_settings";
+        const CORE_KEYS = [STORAGE_KEY, "contacts", "chat_history"];
+
+        const API_PROFILES = {
+            DeepSeek: {
+                patterns: [/sk-[A-Za-z0-9]{32,}/i, /deepseek/i],
+                url: "https://api.deepseek.com/v1/chat/completions",
+                model: "deepseek-chat",
+                keywords: ["deepseek"]
+            },
+            OpenAI: {
+                patterns: [/sk-proj-[A-Za-z0-9_-]+/i, /sk-[A-Za-z0-9]{48,}/i],
+                url: "https://api.openai.com/v1/chat/completions",
+                model: "gpt-3.5-turbo",
+                keywords: ["openai", "sk-proj"]
+            },
+            Claude: {
+                patterns: [/sk-ant-[A-Za-z0-9_-]+/i, /claude/i],
+                url: "https://api.anthropic.com/v1/messages",
+                model: "claude-3-sonnet-20240229",
+                keywords: ["ant", "claude"]
+            }
+        };
+
+        const elements = {
+            mainModelSelect: document.getElementById('mainModelSelect'),
+            apiUrl: document.getElementById('apiUrl'),
+            apiKey: document.getElementById('apiKey'),
+            modelName: document.getElementById('modelName'),
+            backupModel: document.getElementById('backupModel'),
+            ttsApiUrl: document.getElementById('ttsApiUrl'),
+            ttsKey: document.getElementById('ttsKey'),
+            voiceType: document.getElementById('voiceType'),
+            speedSlider: document.getElementById('speedSlider'),
+            volumeSlider: document.getElementById('volumeSlider'),
+            dailyBackup: document.getElementById('dailyBackup'),
+            weeklyBackup: document.getElementById('weeklyBackup'),
+            exitBackup: document.getElementById('exitBackup'),
+            backupTime: document.getElementById('backupTime'),
+            backupLocation: document.getElementById('backupLocation'),
+            defaultLang: document.getElementById('defaultLang'),
+            voiceToggleDiv: document.getElementById('voiceToggle'),
+            debugToggleDiv: document.getElementById('debugToggle'),
+            speedVal: document.getElementById('speedVal'),
+            volumeVal: document.getElementById('volumeVal'),
+            storageSizeSpan: document.getElementById('storageSize'),
+            autoDetectHint: document.getElementById('autoDetectHint')
+        };
+
+        let voiceEnabled = false;
+        let debugMode = false;
+
+        function showToast(msg, isError = false) {
+            let toast = document.querySelector('.toast-msg');
+            if(toast) toast.remove();
+            let div = document.createElement('div');
+            div.className = 'toast-msg';
+            div.innerText = msg;
+            div.style.backgroundColor = isError ? '#b91c1ce6' : '#1e293be6';
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2500);
+        }
+
+        function updateStorageStats() {
+            try {
+                let total = 0;
+                for(let i = 0; i < localStorage.length; i++){
+                    const key = localStorage.key(i);
+                    const val = localStorage.getItem(key);
+                    total += (val ? val.length : 0);
+                }
+                let sizeKB = (total / 1024).toFixed(2);
+                if(elements.storageSizeSpan) elements.storageSizeSpan.innerText = sizeKB + " KB";
+            } catch(e) {
+                console.warn('更新存储统计失败:', e);
+            }
+        }
+
+        function autoDetectProviderFromKey(apiKeyValue) {
+            if(!apiKeyValue || apiKeyValue.trim() === "") return null;
+            const trimmedKey = apiKeyValue.trim();
+            for(let [provider, profile] of Object.entries(API_PROFILES)) {
+                for(let pattern of profile.patterns) {
+                    if(pattern.test(trimmedKey)) {
+                        return { provider, ...profile };
+                    }
+                }
+            }
+            const lowerKey = trimmedKey.toLowerCase();
+            if(lowerKey.includes('deepseek')) return { provider: 'DeepSeek', ...API_PROFILES.DeepSeek };
+            if(lowerKey.includes('sk-proj') || lowerKey.includes('openai')) return { provider: 'OpenAI', ...API_PROFILES.OpenAI };
+            if(lowerKey.includes('sk-ant') || lowerKey.includes('claude')) return { provider: 'Claude', ...API_PROFILES.Claude };
+            return null;
+        }
+
+        function applyAutoFill(apiKeyValue) {
+            if(!elements.autoDetectHint) return;
+            const detected = autoDetectProviderFromKey(apiKeyValue);
+            if(detected) {
+                if(elements.apiUrl) elements.apiUrl.value = detected.url;
+                if(elements.modelName) elements.modelName.value = detected.model;
+                if(elements.mainModelSelect) {
+                    const optionExists = [...elements.mainModelSelect.options].some(opt => opt.value === detected.provider);
+                    if(optionExists) elements.mainModelSelect.value = detected.provider;
+                }
+                elements.autoDetectHint.innerHTML = `✨ 识别为 ${detected.provider} · 已自动填充API地址和模型`;
+                if(debugMode) console.log(`[AutoFill] 填充完成: ${detected.provider}`);
+            } else {
+                if(apiKeyValue && apiKeyValue.trim() !== "") {
+                    elements.autoDetectHint.innerHTML = `⚠️ 未识别到标准Key格式，请手动配置API地址和模型`;
+                } else {
+                    elements.autoDetectHint.innerHTML = "";
+                }
+            }
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if(saved){
+                try{
+                    const cfg = JSON.parse(saved);
+                    if(elements.mainModelSelect) elements.mainModelSelect.value = cfg.mainModel || "DeepSeek";
+                    if(elements.apiUrl) elements.apiUrl.value = cfg.apiUrl || "https://api.deepseek.com/v1/chat/completions";
+                    if(elements.apiKey) elements.apiKey.value = cfg.apiKey || "";
+                    if(elements.modelName) elements.modelName.value = cfg.modelName || "deepseek-chat";
+                    if(elements.backupModel) elements.backupModel.value = cfg.backupModel || "";
+                    if(elements.ttsApiUrl) elements.ttsApiUrl.value = cfg.ttsApiUrl || "https://api.minimax.chat/v1/text_to_speech";
+                    if(elements.ttsKey) elements.ttsKey.value = cfg.ttsKey || "";
+                    if(elements.voiceType) elements.voiceType.value = cfg.voiceType || "温柔女声";
+                    if(elements.speedSlider) elements.speedSlider.value = cfg.speed !== undefined ? cfg.speed : 1.0;
+                    if(elements.volumeSlider) elements.volumeSlider.value = cfg.volume !== undefined ? cfg.volume : 80;
+                    if(elements.dailyBackup) elements.dailyBackup.checked = cfg.dailyBackup !== undefined ? cfg.dailyBackup : true;
+                    if(elements.weeklyBackup) elements.weeklyBackup.checked = cfg.weeklyBackup || false;
+                    if(elements.exitBackup) elements.exitBackup.checked = cfg.exitBackup || false;
+                    if(elements.backupTime) elements.backupTime.value = cfg.backupTime || "03:00";
+                    if(elements.backupLocation) elements.backupLocation.value = cfg.backupLocation || "本地备份";
+                    if(elements.defaultLang) elements.defaultLang.value = cfg.defaultLang || "简体中文";
+                    voiceEnabled = cfg.voiceEnabled === true;
+                    debugMode = cfg.debugMode === true;
+                    updateToggleUI(elements.voiceToggleDiv, voiceEnabled);
+                    updateToggleUI(elements.debugToggleDiv, debugMode);
+                    if(elements.speedVal) elements.speedVal.innerText = elements.speedSlider.value;
+                    if(elements.volumeVal) elements.volumeVal.innerText = elements.volumeSlider.value;
+                    if(elements.apiKey) applyAutoFill(elements.apiKey.value);
+                } catch(e){ console.warn('加载设置失败:', e); }
+            } else {
+                voiceEnabled = false;
+                debugMode = false;
+                if(elements.voiceToggleDiv) updateToggleUI(elements.voiceToggleDiv, false);
+                if(elements.debugToggleDiv) updateToggleUI(elements.debugToggleDiv, false);
+                if(elements.speedVal) elements.speedVal.innerText = "1.0";
+                if(elements.volumeVal) elements.volumeVal.innerText = "80";
+                applyAutoFill("");
+            }
+            updateStorageStats();
+        }
+
+        function updateToggleUI(toggleEl, active) {
+            if(toggleEl) {
+                if(active) toggleEl.classList.add('active');
+                else toggleEl.classList.remove('active');
+            }
+        }
+
+        function saveAllSettings() {
+            const settings = {
+                mainModel: elements.mainModelSelect ? elements.mainModelSelect.value : "DeepSeek",
+                apiUrl: elements.apiUrl ? elements.apiUrl.value : "",
+                apiKey: elements.apiKey ? elements.apiKey.value : "",
+                modelName: elements.modelName ? elements.modelName.value : "deepseek-chat",
+                backupModel: elements.backupModel ? elements.backupModel.value : "",
+                ttsApiUrl: elements.ttsApiUrl ? elements.ttsApiUrl.value : "",
+                ttsKey: elements.ttsKey ? elements.ttsKey.value : "",
+                voiceType: elements.voiceType ? elements.voiceType.value : "温柔女声",
+                speed: elements.speedSlider ? parseFloat(elements.speedSlider.value) : 1.0,
+                volume: elements.volumeSlider ? parseInt(elements.volumeSlider.value) : 80,
+                dailyBackup: elements.dailyBackup ? elements.dailyBackup.checked : true,
+                weeklyBackup: elements.weeklyBackup ? elements.weeklyBackup.checked : false,
+                exitBackup: elements.exitBackup ? elements.exitBackup.checked : false,
+                backupTime: elements.backupTime ? elements.backupTime.value : "03:00",
+                backupLocation: elements.backupLocation ? elements.backupLocation.value : "本地备份",
+                defaultLang: elements.defaultLang ? elements.defaultLang.value : "简体中文",
+                voiceEnabled: voiceEnabled,
+                debugMode: debugMode
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            showToast("✅ 所有设置已保存", false);
+            if(debugMode) console.log("[Debug] 设置保存:", settings);
+            updateStorageStats();
+        }
+
+        async function testConnection() {
+            const apiUrl = elements.apiUrl ? elements.apiUrl.value : "";
+            const apiKey = elements.apiKey ? elements.apiKey.value : "";
+            const model = elements.modelName ? elements.modelName.value : "";
+            if(!apiKey){ showToast("❌ 请填写API Key", true); return; }
+            if(!apiUrl){ showToast("❌ 请填写API地址", true); return; }
+            showToast("⏳ 测试中...", false);
+            try{
+                const isClaude = apiUrl.includes("anthropic");
+                let headers = { 'Content-Type': 'application/json' };
+                if(isClaude){
+                    headers['x-api-key'] = apiKey;
+                    headers['anthropic-version'] = '2023-06-01';
+                } else {
+                    headers['Authorization'] = `Bearer ${apiKey}`;
+                }
+                let body;
+                if(isClaude){
+                    body = JSON.stringify({ model: model, messages: [{role: "user", content: "Hi"}], max_tokens: 5 });
+                } else {
+                    body = JSON.stringify({ model: model, messages: [{role: "user", content: "Hi"}], max_tokens: 5 });
+                }
+                const response = await fetch(apiUrl, { method: 'POST', headers: headers, body: body });
+                if(response.ok){ showToast("✅ 连接成功！Key有效", false); }
+                else { showToast(`❌ 验证失败: ${response.status}`, true); }
+            } catch(e){ showToast(`❌ 网络错误: ${e.message}`, true); }
+        }
+
+        async function playTestVoice() {
+            if(!voiceEnabled){ showToast("⚠️ 请先开启语音开关", true); return; }
+            const apiKey = elements.ttsKey ? elements.ttsKey.value : "";
+            if(!apiKey){ showToast("❌ 请填写MiniMax API Key", true); return; }
+            const ttsUrl = elements.ttsApiUrl ? elements.ttsApiUrl.value : "";
+            if(!ttsUrl){ showToast("❌ 请填写TTS API地址", true); return; }
+            const voice = elements.voiceType ? elements.voiceType.value : "温柔女声";
+            const speed = elements.speedSlider ? parseFloat(elements.speedSlider.value) : 1.0;
+            const volume = elements.volumeSlider ? parseInt(elements.volumeSlider.value) : 80;
+            const testText = "你好，这是语音测试。设置运行正常。";
+            showToast("🎧 请求语音中...", false);
+            try{
+                const resp = await fetch(ttsUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({
+                        text: testText,
+                        voice_setting: { voice_id: voice === "温柔女声" ? "female_gentle" : (voice==="可爱女声"?"female_cute":"male_deep"), speed: speed, volume: volume/100 },
+                        audio_setting: { format: "mp3", sample_rate: 24000 }
+                    })
+                });
+                if(resp.ok){
+                    const blob = await resp.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+                    audio.play().catch(e=>showToast("⚠️ 自动播放被浏览器阻止", true));
+                    audio.onended = () => URL.revokeObjectURL(audioUrl);
+                    showToast("🔊 播放测试语音中", false);
+                } else { showToast(`语音API错误: ${resp.status}`, true); }
+            } catch(e){ showToast(`语音请求失败: ${e.message}`, true); }
+        }
+
+        function backupNow() { 
+            const allData = {}; 
+            for(let i=0;i<localStorage.length;i++){ const key = localStorage.key(i); allData[key] = localStorage.getItem(key); } 
+            const jsonStr = JSON.stringify(allData, null, 2); 
+            const blob = new Blob([jsonStr], {type:"application/json"}); 
+            const link = document.createElement('a'); 
+            const date = new Date().toISOString().slice(0,19).replace(/:/g, '-'); 
+            link.download = `backup_${date}.json`; 
+            link.href = URL.createObjectURL(blob); 
+            link.click(); 
+            URL.revokeObjectURL(link.href); 
+            showToast("📀 备份文件已导出", false); 
+        }
+        
+        function restoreBackup() { 
+            const input = document.createElement('input'); 
+            input.type = 'file'; 
+            input.accept = '.json'; 
+            input.onchange = (e) => { 
+                const file = e.target.files[0]; 
+                if(!file) return; 
+                const reader = new FileReader(); 
+                reader.onload = (ev) => { 
+                    try{ 
+                        const backupData = JSON.parse(ev.target.result); 
+                        if(confirm("⚠️ 恢复备份将覆盖当前所有localStorage数据，确定吗？")){ 
+                            for(let key in backupData){ localStorage.setItem(key, backupData[key]); } 
+                            loadSettings(); 
+                            showToast("✅ 恢复备份完成", false); 
+                        } 
+                    } catch(err){ showToast("❌ 备份文件解析失败", true); } 
+                }; 
+                reader.readAsText(file); 
+            }; 
+            input.click(); 
+        }
+        
+        function viewBackupList() { showToast("📋 备份列表功能预留，请使用「立即备份」手动管理", false); }
+        function clearCache() { 
+            let removedCount = 0; 
+            for(let i=0;i<localStorage.length;i++){ const key = localStorage.key(i); if(!CORE_KEYS.includes(key) && key !== STORAGE_KEY){ localStorage.removeItem(key); removedCount++; } } 
+            updateStorageStats(); 
+            showToast(`🧹 已清理 ${removedCount} 项临时数据`, false); 
+        }
+        function exportAllData() { 
+            const all = {}; 
+            for(let i=0;i<localStorage.length;i++){ const key = localStorage.key(i); all[key] = localStorage.getItem(key); } 
+            const dataStr = JSON.stringify(all, null, 2); 
+            const blob = new Blob([dataStr], {type:"application/json"}); 
+            const link = document.createElement('a'); 
+            link.download = `all_export_${Date.now()}.json`; 
+            link.href = URL.createObjectURL(blob); 
+            link.click(); 
+            URL.revokeObjectURL(link.href); 
+            showToast("📤 导出全部数据成功", false); 
+        }
+        function importDataMerge() { const importInput = document.getElementById('importFileInput'); if(importInput) importInput.click(); }
+        function handleImportFile(event) { 
+            const file = event.target.files[0]; 
+            if(!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = (ev) => { 
+                try{ 
+                    const imported = JSON.parse(ev.target.result); 
+                    for(let key in imported){ if(!localStorage.getItem(key)){ localStorage.setItem(key, imported[key]); } } 
+                    loadSettings(); 
+                    showToast("📦 导入完成（合并模式）", false); 
+                } catch(e){ showToast("❌ 文件解析错误", true); } 
+            }; 
+            reader.readAsText(file); 
+            event.target.value = ''; 
+        }
+
+        function bindEvents() {
+            if(elements.voiceToggleDiv) {
+                elements.voiceToggleDiv.addEventListener('click', () => { voiceEnabled = !voiceEnabled; updateToggleUI(elements.voiceToggleDiv, voiceEnabled); saveAllSettings(); });
+            }
+            if(elements.debugToggleDiv) {
+                elements.debugToggleDiv.addEventListener('click', () => { debugMode = !debugMode; updateToggleUI(elements.debugToggleDiv, debugMode); saveAllSettings(); });
+            }
+            if(elements.speedSlider && elements.speedVal) {
+                elements.speedSlider.addEventListener('input', ()=>{ elements.speedVal.innerText = elements.speedSlider.value; });
+            }
+            if(elements.volumeSlider && elements.volumeVal) {
+                elements.volumeSlider.addEventListener('input', ()=>{ elements.volumeVal.innerText = elements.volumeSlider.value; });
+            }
+            document.querySelectorAll('.toggle-pwd').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetId = btn.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
+                    if(input) {
+                        if(input.type === 'password'){ input.type = 'text'; btn.innerText = '🙈'; } 
+                        else { input.type = 'password'; btn.innerText = '👁️'; }
+                    }
+                });
+            });
+            if(elements.apiKey) {
+                elements.apiKey.addEventListener('input', (e) => { applyAutoFill(e.target.value); });
+            }
+            if(elements.mainModelSelect) {
+                elements.mainModelSelect.addEventListener('change', () => {
+                    const selected = elements.mainModelSelect.value;
+                    if(selected !== "其他" && API_PROFILES[selected] && elements.apiUrl && elements.modelName) {
+                        const currentKey = elements.apiKey ? elements.apiKey.value : "";
+                        const detected = autoDetectProviderFromKey(currentKey);
+                        if(!detected || detected.provider !== selected) {
+                            elements.apiUrl.value = API_PROFILES[selected].url;
+                            elements.modelName.value = API_PROFILES[selected].model;
+                            if(elements.autoDetectHint) {
+                                elements.autoDetectHint.innerHTML = `🔧 手动切换至 ${selected}，已填充默认端点`;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const testConnBtn = document.getElementById('testConnBtn');
+            if(testConnBtn) testConnBtn.addEventListener('click', testConnection);
+            const testTtsBtn = document.getElementById('testTtsBtn');
+            if(testTtsBtn) testTtsBtn.addEventListener('click', playTestVoice);
+            const backupNowBtn = document.getElementById('backupNowBtn');
+            if(backupNowBtn) backupNowBtn.addEventListener('click', backupNow);
+            const restoreBackupBtn = document.getElementById('restoreBackupBtn');
+            if(restoreBackupBtn) restoreBackupBtn.addEventListener('click', restoreBackup);
+            const viewBackupListBtn = document.getElementById('viewBackupListBtn');
+            if(viewBackupListBtn) viewBackupListBtn.addEventListener('click', viewBackupList);
+            const clearCacheBtn = document.getElementById('clearCacheBtn');
+            if(clearCacheBtn) clearCacheBtn.addEventListener('click', clearCache);
+            const exportAllDataBtn = document.getElementById('exportAllDataBtn');
+            if(exportAllDataBtn) exportAllDataBtn.addEventListener('click', exportAllData);
+            const importDataBtn = document.getElementById('importDataBtn');
+            if(importDataBtn) importDataBtn.addEventListener('click', importDataMerge);
+            const importFileInput = document.getElementById('importFileInput');
+            if(importFileInput) importFileInput.addEventListener('change', handleImportFile);
+            const saveAllSettingsBtn = document.getElementById('saveAllSettingsBtn');
+            if(saveAllSettingsBtn) saveAllSettingsBtn.addEventListener('click', saveAllSettings);
+            
+            // 【新增】返回桌面按钮
+            const backToDesktopBtn = document.getElementById('backToDesktopBtn');
+            if(backToDesktopBtn) {
+                backToDesktopBtn.addEventListener('click', () => {
+                    window.location.href = '../../index.html';
+                });
+            }
+            
+            window.addEventListener('beforeunload', () => { if(elements.exitBackup && elements.exitBackup.checked) backupNow(); });
+            let dailyBackupTriggered = false;
+            setInterval(() => {
+                if(elements.dailyBackup && elements.dailyBackup.checked && elements.backupTime){
+                    const now = new Date();
+                    const targetTime = elements.backupTime.value;
+                    const [hour, minute] = targetTime.split(':');
+                    if(now.getHours() == parseInt(hour) && now.getMinutes() == parseInt(minute) && !dailyBackupTriggered){
+                        backupNow();
+                        dailyBackupTriggered = true;
+                        setTimeout(()=>{ dailyBackupTriggered = false; }, 60000);
+                    }
+                }
+            }, 30000);
+        }
+
+        loadSettings();
+        bindEvents();
+        updateStorageStats();
+        console.log('设置页面已加载完成');
+    });
+</script>
+</body>
+</html>

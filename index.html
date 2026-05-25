@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>灵动桌面 - 完全体 | 支持图标大小调节</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            background: #f5f5f7;
+        }
+
+        .desktop {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .swipe-container {
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pages-track {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s ease-out;
+        }
+
+        .page {
+            flex: 0 0 100%;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px 12px 0 12px;
+            position: relative;
+        }
+
+        .page::-webkit-scrollbar {
+            width: 0;
+            background: transparent;
+        }
+
+        .icons-grid {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 70vh;
+        }
+
+        .icon-item {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 85px;
+            border-radius: 20px;
+            z-index: 10;
+            background: transparent;
+            cursor: pointer;
+            transition: none !important;
+            animation: none !important;
+            transform: none !important;
+        }
+
+        body.edit-mode .icon-item.dragging-source {
+            opacity: 0.3;
+        }
+
+        .grid-cell-highlight {
+            position: absolute;
+            background: rgba(100, 150, 255, 0.5);
+            border-radius: 20px;
+            backdrop-filter: blur(2px);
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.6) inset;
+        }
+
+        .dragging-clone {
+            position: fixed;
+            z-index: 9999;
+            opacity: 0.85;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+            pointer-events: none;
+            width: 70px;
+            height: 85px;
+            transition: none !important;
+            transform: none !important;
+        }
+
+        .icon-img {
+            width: 60px;
+            height: 60px;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+            color: white;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease;
+        }
+
+        .icon-img.has-custom-img {
+            background-size: cover;
+            background-position: center;
+            font-size: 0;
+        }
+
+        .icon-label {
+            margin-top: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            word-break: keep-all;
+            white-space: nowrap;
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+            max-width: 70px;
+            color: white;
+            transition: color 0.2s ease;
+        }
+
+        .page-indicators {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 0 8px 0;
+            background: transparent;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .dot.active {
+            width: 20px;
+            border-radius: 5px;
+            background-color: white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        .dock-bar {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            min-height: 85px;
+            position: relative;
+        }
+
+        .dock-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 1;
+            max-width: 80px;
+            transition: none !important;
+            position: relative;
+        }
+
+        .dock-img {
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease;
+        }
+
+        .dock-label {
+            font-size: 11px;
+            margin-top: 4px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .dock-highlight {
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            background: rgba(100, 200, 255, 0.6);
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .edit-mode-tip {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 2000;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+
+        .stars-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="desktop" id="desktopContainer">
+    <div class="swipe-container" id="swipeContainer">
+        <div class="pages-track" id="pagesTrack"></div>
+    </div>
+    <div class="page-indicators" id="pageIndicators"></div>
+    <div class="dock-bar" id="dockBar"></div>
+</div>
+<input type="file" id="customIconInput" accept="image/*" style="display:none">
+
+<script>
+    // ========== 应用库（已删除相册）==========
+    const appsLibrary = {
+        chat: { id: "chat", name: "AI聊天", url: "apps/chat/index.html", defaultIcon: "💬" },
+        theme: { id: "theme", name: "主题", url: "apps/theme/index.html", defaultIcon: "🎨" },
+        setting: { id: "setting", name: "设置", url: "apps/setting/index.html", defaultIcon: "⚙️" },
+        music: { id: "music", name: "音乐", url: "apps/music/index.html", defaultIcon: "🎵" },
+        worldbook: { id: "worldbook", name: "世界书", url: "apps/worldbook/index.html", defaultIcon: "📖" }
+    };
+    
+    // ========== 配置参数 ==========
+    const GRID_COLS = 4;
+    const GRID_ROWS = 5;
+    const MAX_DOCK_ITEMS = 4;
+    
+    let page1Icons = [];
+    let page2Icons = [];
+    let dockIcons = [];
+    
+    const STORAGE_P1 = 'desktop_page1_config';
+    const STORAGE_P2 = 'desktop_page2_config';
+    const STORAGE_DOCK = 'desktop_dock_config';
+    const THEME_KEYS = {
+        wallpaper: 'my_wallpaper_data',
+        iconSize: 'my_icon_size',
+        textColor: 'my_text_color',
+        themePreset: 'my_theme_preset'
+    };
+    
+    // 第一页：主题、AI聊天、设置、世界书
+    const defaultPage1Config = [
+        { appId: "theme", gridRow: 0, gridCol: 0, customName: null, customImg: null },
+        { appId: "chat", gridRow: 1, gridCol: 0, customName: null, customImg: null },
+        { appId: "setting", gridRow: 2, gridCol: 0, customName: null, customImg: null },
+        { appId: "worldbook", gridRow: 0, gridCol: 1, customName: null, customImg: null }
+    ];
+    // 第二页：空
+    const defaultPage2Config = [];
+    // Dock栏：只保留音乐
+    const defaultDockConfig = [
+        { appId: "music", customName: null, customImg: null }
+    ];
+    
+    let currentPage = 0;
+    const TOTAL_PAGES = 2;
+    let isEditMode = false;
+    let editModeTip = null;
+    
+    // 拖拽相关变量
+    let dragActive = false;
+    let dragSourceIconDom = null;
+    let dragSourceData = null;
+    let cloneElement = null;
+    let startClientX = 0, startClientY = 0;
+    let currentTargetInfo = null;
+    let highlightElement = null;
+    let longPressTimer = null;
+    let isDraggingInProgress = false;
+    let currentLongPressTarget = null;
+    
+    const pagesTrack = document.getElementById('pagesTrack');
+    const pageIndicators = document.getElementById('pageIndicators');
+    const dockBar = document.getElementById('dockBar');
+    const desktopContainer = document.getElementById('desktopContainer');
+    
+    // ---------- 辅助函数 ----------
+    function getAppById(appId) { return appsLibrary[appId] || null; }
+    function getIconDisplayName(icon) {
+        if (icon.customName && icon.customName.trim() !== "") return icon.customName;
+        const app = getAppById(icon.appId);
+        return app ? app.name : "未知";
+    }
+    function getIconAsset(icon) {
+        if (icon.customImg) return { type: "img", value: icon.customImg };
+        const app = getAppById(icon.appId);
+        return { type: "emoji", value: app ? app.defaultIcon : "📦" };
+    }
+    
+    function saveAllData() {
+        localStorage.setItem(STORAGE_P1, JSON.stringify(page1Icons));
+        localStorage.setItem(STORAGE_P2, JSON.stringify(page2Icons));
+        localStorage.setItem(STORAGE_DOCK, JSON.stringify(dockIcons));
+    }
+    
+    // ========== 【关键修改】强制使用新配置，忽略旧缓存 ==========
+    function loadAllData() {
+        try {
+            // 🚀 强制重置：每次打开都用最新的默认配置
+            // 如果你以后想保留用户修改，把下面这行改成 const FORCE_RESET = false;
+            const FORCE_RESET = true;
+            
+            if (FORCE_RESET) {
+                console.log("🔄 强制重置模式：使用最新默认配置");
+                page1Icons = defaultPage1Config.map(c => ({...c}));
+                page2Icons = defaultPage2Config.map(c => ({...c}));
+                dockIcons = defaultDockConfig.map(c => ({...c}));
+                saveAllData();
+            } else {
+                const savedP1 = localStorage.getItem(STORAGE_P1);
+                const savedP2 = localStorage.getItem(STORAGE_P2);
+                const savedDock = localStorage.getItem(STORAGE_DOCK);
+                page1Icons = savedP1 ? JSON.parse(savedP1) : defaultPage1Config.map(c => ({...c}));
+                page2Icons = savedP2 ? JSON.parse(savedP2) : defaultPage2Config.map(c => ({...c}));
+                dockIcons = savedDock ? JSON.parse(savedDock) : defaultDockConfig.map(c => ({...c}));
+            }
+            
+            // 数据校验
+            [page1Icons, page2Icons].forEach(icons => {
+                icons.forEach(icon => {
+                    if (!icon.appId || !appsLibrary[icon.appId]) icon.appId = 'chat';
+                    if (icon.gridRow === undefined) icon.gridRow = 0;
+                    if (icon.gridCol === undefined) icon.gridCol = 0;
+                    if (!icon.hasOwnProperty('customName')) icon.customName = null;
+                    if (!icon.hasOwnProperty('customImg')) icon.customImg = null;
+                });
+            });
+            dockIcons.forEach(icon => {
+                if (!icon.appId || !appsLibrary[icon.appId]) icon.appId = 'chat';
+                if (!icon.hasOwnProperty('customName')) icon.customName = null;
+                if (!icon.hasOwnProperty('customImg')) icon.customImg = null;
+            });
+            if (dockIcons.length > MAX_DOCK_ITEMS) dockIcons = dockIcons.slice(0, MAX_DOCK_ITEMS);
+            saveAllData();
+        } catch(e) { console.warn(e); }
+    }
+    
+    let gridMetrics = { cellW: 0, cellH: 0, startX: 0, startY: 0 };
+    function computeGridDimensions(pageElement) {
+        const gridContainer = pageElement.querySelector('.icons-grid');
+        if (!gridContainer) return false;
+        const rect = gridContainer.getBoundingClientRect();
+        if (rect.width <= 0) return false;
+        gridMetrics.cellW = rect.width / GRID_COLS;
+        gridMetrics.cellH = gridMetrics.cellW;
+        const maxHeight = (rect.height - 20) / GRID_ROWS;
+        if (gridMetrics.cellH > maxHeight) gridMetrics.cellH = maxHeight;
+        gridMetrics.startX = rect.left;
+        gridMetrics.startY = rect.top;
+        return true;
+    }
+    function getGridPos(row, col) {
+        const left = gridMetrics.startX + col * gridMetrics.cellW + (gridMetrics.cellW - 70) / 2;
+        const top = gridMetrics.startY + row * gridMetrics.cellH + (gridMetrics.cellH - 85) / 2;
+        return { left, top };
+    }
+    
+    function applyThemeSettings() {
+        try {
+            const savedTheme = localStorage.getItem(THEME_KEYS.themePreset);
+            const savedWallpaper = localStorage.getItem(THEME_KEYS.wallpaper);
+            
+            if (savedTheme && !savedWallpaper) {
+                if (savedTheme === 'light') {
+                    desktopContainer.style.backgroundImage = 'none';
+                    desktopContainer.style.backgroundColor = '#f0f2f5';
+                } else if (savedTheme === 'dark') {
+                    desktopContainer.style.backgroundImage = 'none';
+                    desktopContainer.style.backgroundColor = '#121212';
+                } else if (savedTheme === 'star') {
+                    desktopContainer.style.backgroundImage = 'none';
+                    desktopContainer.style.backgroundColor = '#0a0a2a';
+                    addStarEffect();
+                }
+            } 
+            else if (savedWallpaper && savedWallpaper !== 'null') {
+                desktopContainer.style.backgroundImage = `url('${savedWallpaper}')`;
+                desktopContainer.style.backgroundSize = 'cover';
+                removeStarEffect();
+            }
+            else {
+                desktopContainer.style.backgroundImage = 'none';
+                desktopContainer.style.backgroundColor = '#1a1a2e';
+                removeStarEffect();
+            }
+            
+            const savedIconSize = localStorage.getItem(THEME_KEYS.iconSize);
+            if (savedIconSize) {
+                const size = parseInt(savedIconSize);
+                document.querySelectorAll('.icon-img').forEach(img => {
+                    img.style.width = `${size}px`;
+                    img.style.height = `${size}px`;
+                    img.style.fontSize = `${Math.max(24, size * 0.5)}px`;
+                });
+                document.querySelectorAll('.dock-img').forEach(img => {
+                    img.style.width = `${Math.max(40, size * 0.8)}px`;
+                    img.style.height = `${Math.max(40, size * 0.8)}px`;
+                    img.style.fontSize = `${Math.max(20, size * 0.45)}px`;
+                });
+            }
+            
+            if (!savedTheme) {
+                const savedTextColor = localStorage.getItem(THEME_KEYS.textColor);
+                if (savedTextColor) {
+                    document.querySelectorAll('.icon-label, .dock-label').forEach(label => {
+                        label.style.color = savedTextColor;
+                    });
+                } else {
+                    document.querySelectorAll('.icon-label, .dock-label').forEach(label => {
+                        label.style.color = 'white';
+                    });
+                }
+            } else if (savedTheme === 'light') {
+                document.querySelectorAll('.icon-label, .dock-label').forEach(label => {
+                    label.style.color = '#1e1e2f';
+                });
+            } else if (savedTheme === 'dark') {
+                document.querySelectorAll('.icon-label, .dock-label').forEach(label => {
+                    label.style.color = '#ffffff';
+                });
+            } else if (savedTheme === 'star') {
+                document.querySelectorAll('.icon-label, .dock-label').forEach(label => {
+                    label.style.color = '#e0e0ff';
+                });
+            }
+        } catch(e) {
+            console.warn('应用主题设置失败:', e);
+        }
+    }
+    
+    function addStarEffect() {
+        removeStarEffect();
+        const starsDiv = document.createElement('div');
+        starsDiv.className = 'stars-bg';
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.style.cssText = `position:absolute; background:white; border-radius:50%; width:${Math.random()*3+1}px; height:${Math.random()*3+1}px; left:${Math.random()*100}%; top:${Math.random()*100}%; opacity:${Math.random()*0.8+0.2};`;
+            starsDiv.appendChild(star);
+        }
+        desktopContainer.appendChild(starsDiv);
+    }
+    
+    function removeStarEffect() {
+        const stars = document.querySelector('.stars-bg');
+        if (stars) stars.remove();
+    }
+    
+    function renderPageGrid(pageIdx) {
+        const page = document.querySelector(`.page[data-page='${pageIdx}']`);
+        if (!page) return;
+        let container = page.querySelector('.icons-grid');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'icons-grid';
+            page.appendChild(container);
+        }
+        container.innerHTML = '';
+        const icons = pageIdx === 0 ? page1Icons : page2Icons;
+        if (!computeGridDimensions(page)) return;
+        icons.forEach((icon, idx) => {
+            const iconDiv = createIconElement(icon, pageIdx, idx);
+            const { left, top } = getGridPos(icon.gridRow, icon.gridCol);
+            iconDiv.style.left = `${left}px`;
+            iconDiv.style.top = `${top}px`;
+            container.appendChild(iconDiv);
+        });
+        setTimeout(() => applyThemeSettings(), 10);
+    }
+    
+    function createIconElement(iconData, pageIdx, idx) {
+        const div = document.createElement('div');
+        div.className = 'icon-item';
+        div.setAttribute('data-idx', idx);
+        div.setAttribute('data-page', pageIdx);
+        div.setAttribute('data-type', 'grid');
+        const displayName = getIconDisplayName(iconData);
+        const asset = getIconAsset(iconData);
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'icon-img';
+        if (asset.type === 'img') {
+            imgDiv.classList.add('has-custom-img');
+            imgDiv.style.backgroundImage = `url('${asset.value}')`;
+            imgDiv.innerText = '';
+        } else {
+            imgDiv.innerText = asset.value;
+        }
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'icon-label';
+        labelSpan.innerText = displayName;
+        div.appendChild(imgDiv);
+        div.appendChild(labelSpan);
+        
+        div.onclick = (e) => {
+            e.stopPropagation();
+            if (isEditMode) {
+                if (isDraggingInProgress) return;
+                let newName = prompt("修改图标名称 (留空恢复默认)", getIconDisplayName(iconData));
+                if (newName !== null) {
+                    newName = newName.trim();
+                    if (newName === "") iconData.customName = null;
+                    else iconData.customName = newName.slice(0, 12);
+                    saveAllData();
+                    fullRefreshUI();
+                }
+                return;
+            }
+            navigateToApp(iconData.appId);
+        };
+        
+        let pressTimer = null;
+        const clearPressTimer = () => {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        };
+        
+        const startPress = (e) => {
+            if (isDraggingInProgress) return;
+            if (currentLongPressTarget === div) return;
+            clearPressTimer();
+            pressTimer = setTimeout(() => {
+                if (!isDraggingInProgress) {
+                    currentLongPressTarget = div;
+                    if (!isEditMode) {
+                        enterEditMode();
+                    }
+                    setTimeout(() => {
+                        if (isEditMode && !isDraggingInProgress) {
+                            startDrag(e, div, { type: 'grid', pageIdx: pageIdx, index: idx, item: iconData });
+                        }
+                    }, 10);
+                }
+                pressTimer = null;
+            }, 500);
+        };
+        
+        const cancelPress = () => {
+            clearPressTimer();
+            currentLongPressTarget = null;
+        };
+        
+        div.addEventListener('touchstart', startPress);
+        div.addEventListener('touchend', cancelPress);
+        div.addEventListener('touchcancel', cancelPress);
+        div.addEventListener('touchmove', cancelPress);
+        div.addEventListener('mousedown', startPress);
+        div.addEventListener('mouseup', cancelPress);
+        div.addEventListener('mouseleave', cancelPress);
+        
+        return div;
+    }
+    
+    function renderDock() {
+        dockBar.innerHTML = '';
+        dockIcons.forEach((icon, idx) => {
+            const dockDiv = createDockElement(icon, idx);
+            dockBar.appendChild(dockDiv);
+        });
+        for (let i = dockIcons.length; i < MAX_DOCK_ITEMS; i++) {
+            const emptySlot = document.createElement('div');
+            emptySlot.className = 'dock-item';
+            emptySlot.style.opacity = '0.4';
+            emptySlot.style.backgroundColor = 'rgba(255,255,255,0.1)';
+            emptySlot.style.borderRadius = '20px';
+            emptySlot.setAttribute('data-empty-slot', 'true');
+            emptySlot.setAttribute('data-slot-idx', i);
+            dockBar.appendChild(emptySlot);
+        }
+        setTimeout(() => applyThemeSettings(), 10);
+    }
+    
+    function createDockElement(icon, idx) {
+        const dockDiv = document.createElement('div');
+        dockDiv.className = 'dock-item';
+        dockDiv.setAttribute('data-dock-idx', idx);
+        dockDiv.setAttribute('data-type', 'dock');
+        const asset = getIconAsset(icon);
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'dock-img';
+        if (asset.type === 'img') {
+            imgDiv.style.backgroundImage = `url('${asset.value}')`;
+            imgDiv.style.backgroundSize = 'cover';
+            imgDiv.innerText = '';
+        } else {
+            imgDiv.innerText = asset.value;
+        }
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'dock-label';
+        labelSpan.innerText = getIconDisplayName(icon);
+        dockDiv.appendChild(imgDiv);
+        dockDiv.appendChild(labelSpan);
+        
+        dockDiv.onclick = (e) => {
+            e.stopPropagation();
+            if (isEditMode) {
+                if (isDraggingInProgress) return;
+                let newName = prompt("修改Dock图标名称", getIconDisplayName(icon));
+                if (newName !== null) {
+                    newName = newName.trim();
+                    if (newName === "") icon.customName = null;
+                    else icon.customName = newName.slice(0, 12);
+                    saveAllData();
+                    fullRefreshUI();
+                }
+                return;
+            }
+            navigateToApp(icon.appId);
+        };
+        
+        let pressTimer = null;
+        const clearTimer = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+        const startPress = (e) => {
+            if (isDraggingInProgress) return;
+            clearTimer();
+            pressTimer = setTimeout(() => {
+                if (!isEditMode) enterEditMode();
+                setTimeout(() => {
+                    if (isEditMode && !isDraggingInProgress) {
+                        startDrag(e, dockDiv, { type: 'dock', index: idx, item: icon });
+                    }
+                }, 10);
+                pressTimer = null;
+            }, 500);
+        };
+        dockDiv.addEventListener('touchstart', startPress);
+        dockDiv.addEventListener('touchend', clearTimer);
+        dockDiv.addEventListener('touchcancel', clearTimer);
+        dockDiv.addEventListener('mousedown', startPress);
+        dockDiv.addEventListener('mouseup', clearTimer);
+        dockDiv.addEventListener('mouseleave', clearTimer);
+        
+        return dockDiv;
+    }
+    
+    function fullRefreshUI() {
+        renderPageGrid(0);
+        renderPageGrid(1);
+        renderDock();
+        document.body.classList.toggle('edit-mode', isEditMode);
+        applyThemeSettings();
+    }
+    
+    // ---------- 拖拽核心 ----------
+    function startDrag(e, sourceDom, sourceInfo) {
+        if (!isEditMode || isDraggingInProgress) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const point = e.touches ? e.touches[0] : e;
+        startClientX = point.clientX;
+        startClientY = point.clientY;
+        dragSourceIconDom = sourceDom;
+        dragSourceData = sourceInfo;
+        dragSourceIconDom.classList.add('dragging-source');
+        
+        cloneElement = sourceDom.cloneNode(true);
+        cloneElement.classList.add('dragging-clone');
+        cloneElement.style.left = `${startClientX - 35}px`;
+        cloneElement.style.top = `${startClientY - 42}px`;
+        document.body.appendChild(cloneElement);
+        
+        isDraggingInProgress = true;
+        dragActive = true;
+        
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('touchend', onDragEnd);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+    }
+    
+    function getTargetInfo(clientX, clientY) {
+        const dockRect = dockBar.getBoundingClientRect();
+        if (clientY >= dockRect.top && clientY <= dockRect.bottom) {
+            const dockItems = document.querySelectorAll('.dock-item');
+            for (let i = 0; i < dockItems.length; i++) {
+                const rect = dockItems[i].getBoundingClientRect();
+                if (clientX >= rect.left && clientX <= rect.right) {
+                    const isEmpty = dockItems[i].hasAttribute('data-empty-slot');
+                    if (isEmpty) {
+                        const slotIdx = parseInt(dockItems[i].getAttribute('data-slot-idx'));
+                        return { type: 'dock', dockIndex: slotIdx, isEmpty: true };
+                    } else {
+                        const idx = parseInt(dockItems[i].getAttribute('data-dock-idx'));
+                        if (!isNaN(idx)) return { type: 'dock', dockIndex: idx, isEmpty: false, item: dockIcons[idx] };
+                    }
+                }
+            }
+            return { type: 'dock', dockIndex: dockIcons.length, isEmpty: true };
+        }
+        
+        const pages = document.querySelectorAll('.page');
+        for (let page of pages) {
+            const rect = page.getBoundingClientRect();
+            if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+                const pageIdx = parseInt(page.getAttribute('data-page'));
+                const cell = getNearestCell(clientX, clientY, page);
+                if (cell) return { type: 'grid', pageIdx, row: cell.row, col: cell.col };
+            }
+        }
+        return null;
+    }
+    
+    function getNearestCell(clientX, clientY, pageElement) {
+        const grid = pageElement.querySelector('.icons-grid');
+        if (!grid) return null;
+        if (!computeGridDimensions(pageElement)) return null;
+        const rect = grid.getBoundingClientRect();
+        if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+        const relX = clientX - rect.left;
+        const relY = clientY - rect.top;
+        let col = Math.floor(relX / gridMetrics.cellW);
+        let row = Math.floor(relY / gridMetrics.cellH);
+        col = Math.min(GRID_COLS-1, Math.max(0, col));
+        row = Math.min(GRID_ROWS-1, Math.max(0, row));
+        return { row, col };
+    }
+    
+    function showTargetHighlight(targetInfo) {
+        removeHighlight();
+        if (!targetInfo) return;
+        if (targetInfo.type === 'grid') {
+            const page = document.querySelector(`.page[data-page='${targetInfo.pageIdx}']`);
+            if (page && computeGridDimensions(page)) {
+                const container = page.querySelector('.icons-grid');
+                if (container) {
+                    const left = gridMetrics.startX + targetInfo.col * gridMetrics.cellW;
+                    const top = gridMetrics.startY + targetInfo.row * gridMetrics.cellH;
+                    const div = document.createElement('div');
+                    div.className = 'grid-cell-highlight';
+                    div.style.left = `${left}px`;
+                    div.style.top = `${top}px`;
+                    div.style.width = `${gridMetrics.cellW}px`;
+                    div.style.height = `${gridMetrics.cellH}px`;
+                    container.appendChild(div);
+                    highlightElement = div;
+                }
+            }
+        } else if (targetInfo.type === 'dock') {
+            const dockItems = document.querySelectorAll('.dock-item');
+            if (dockItems[targetInfo.dockIndex]) {
+                const targetDiv = dockItems[targetInfo.dockIndex];
+                let highlightDiv = targetDiv.querySelector('.dock-highlight');
+                if (!highlightDiv) {
+                    highlightDiv = document.createElement('div');
+                    highlightDiv.className = 'dock-highlight';
+                    targetDiv.style.position = 'relative';
+                    targetDiv.appendChild(highlightDiv);
+                }
+                highlightElement = highlightDiv;
+            }
+        }
+    }
+    
+    function removeHighlight() {
+        if (highlightElement) {
+            highlightElement.remove();
+            highlightElement = null;
+        }
+        document.querySelectorAll('.dock-highlight').forEach(el => el.remove());
+    }
+    
+    function onDragMove(e) {
+        if (!dragActive) return;
+        e.preventDefault();
+        const point = e.touches ? e.touches[0] : e;
+        if (cloneElement) {
+            cloneElement.style.left = `${point.clientX - 35}px`;
+            cloneElement.style.top = `${point.clientY - 42}px`;
+        }
+        const target = getTargetInfo(point.clientX, point.clientY);
+        if (target) {
+            currentTargetInfo = target;
+            showTargetHighlight(target);
+        } else {
+            removeHighlight();
+            currentTargetInfo = null;
+        }
+    }
+    
+    function performDrop() {
+        if (!dragSourceData || !currentTargetInfo) return;
+        const src = dragSourceData;
+        const dst = currentTargetInfo;
+        const sourceItem = { ...src.item };
+        
+        if (src.type === 'grid') {
+            const srcArr = src.pageIdx === 0 ? page1Icons : page2Icons;
+            srcArr.splice(src.index, 1);
+        } else if (src.type === 'dock') {
+            dockIcons.splice(src.index, 1);
+        }
+        
+        if (dst.type === 'grid') {
+            const targetArr = dst.pageIdx === 0 ? page1Icons : page2Icons;
+            const existIdx = targetArr.findIndex(ic => ic.gridRow === dst.row && ic.gridCol === dst.col);
+            if (existIdx !== -1) {
+                const targetIcon = targetArr[existIdx];
+                if (src.type === 'grid') {
+                    const srcArrRestore = src.pageIdx === 0 ? page1Icons : page2Icons;
+                    targetIcon.gridRow = src.item.gridRow;
+                    targetIcon.gridCol = src.item.gridCol;
+                    srcArrRestore.splice(src.index, 0, targetIcon);
+                    sourceItem.gridRow = dst.row;
+                    sourceItem.gridCol = dst.col;
+                    targetArr[existIdx] = sourceItem;
+                } else if (src.type === 'dock') {
+                    sourceItem.gridRow = dst.row;
+                    sourceItem.gridCol = dst.col;
+                    targetArr[existIdx] = sourceItem;
+                    dockIcons.splice(src.index, 0, targetIcon);
+                    if (dockIcons.length > MAX_DOCK_ITEMS) dockIcons.pop();
+                }
+            } else {
+                sourceItem.gridRow = dst.row;
+                sourceItem.gridCol = dst.col;
+                targetArr.push(sourceItem);
+            }
+        } else if (dst.type === 'dock') {
+            if (dst.isEmpty || dst.dockIndex >= dockIcons.length) {
+                if (dockIcons.length < MAX_DOCK_ITEMS) {
+                    dockIcons.splice(dst.dockIndex, 0, sourceItem);
+                } else {
+                    dockIcons.push(sourceItem);
+                }
+                if (dockIcons.length > MAX_DOCK_ITEMS) dockIcons.pop();
+            } else {
+                const targetDockItem = dockIcons[dst.dockIndex];
+                if (src.type === 'dock') {
+                    dockIcons[dst.dockIndex] = sourceItem;
+                    dockIcons[src.index] = targetDockItem;
+                } else {
+                    dockIcons[dst.dockIndex] = sourceItem;
+                    if (src.type === 'grid') {
+                        const srcArr = src.pageIdx === 0 ? page1Icons : page2Icons;
+                        const sourceGridItem = { ...targetDockItem, gridRow: src.item.gridRow, gridCol: src.item.gridCol };
+                        srcArr.splice(src.index, 0, sourceGridItem);
+                    }
+                }
+            }
+        }
+        
+        if (dockIcons.length > MAX_DOCK_ITEMS) dockIcons = dockIcons.slice(0, MAX_DOCK_ITEMS);
+        saveAllData();
+        fullRefreshUI();
+    }
+    
+    function cleanupDrag() {
+        if (cloneElement) {
+            cloneElement.remove();
+            cloneElement = null;
+        }
+        if (dragSourceIconDom) {
+            dragSourceIconDom.classList.remove('dragging-source');
+        }
+        removeHighlight();
+        
+        dragActive = false;
+        isDraggingInProgress = false;
+        dragSourceIconDom = null;
+        dragSourceData = null;
+        currentTargetInfo = null;
+        currentLongPressTarget = null;
+        
+        document.removeEventListener('touchmove', onDragMove);
+        document.removeEventListener('touchend', onDragEnd);
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup', onDragEnd);
+    }
+    
+    function onDragEnd(e) {
+        if (!dragActive) return;
+        e.preventDefault();
+        if (currentTargetInfo) {
+            performDrop();
+        }
+        cleanupDrag();
+    }
+    
+    function enterEditMode() {
+        if (isEditMode) return;
+        isEditMode = true;
+        document.body.classList.add('edit-mode');
+        if (!editModeTip) {
+            editModeTip = document.createElement('div');
+            editModeTip.className = 'edit-mode-tip';
+            editModeTip.innerText = '✎ 编辑模式 · 点击改名 · 长按拖动图标至网格或Dock';
+            document.body.appendChild(editModeTip);
+        }
+        document.body.addEventListener('click', exitOnBlank);
+    }
+    
+    function exitEditMode() {
+        if (!isEditMode) return;
+        isEditMode = false;
+        document.body.classList.remove('edit-mode');
+        if (editModeTip) editModeTip.remove();
+        editModeTip = null;
+        document.body.removeEventListener('click', exitOnBlank);
+        if (isDraggingInProgress) cleanupDrag();
+    }
+    
+    function exitOnBlank(e) {
+        let target = e.target;
+        while (target && target !== document.body) {
+            if (target.classList && (target.classList.contains('icon-item') || target.classList.contains('dock-item'))) return;
+            target = target.parentNode;
+        }
+        exitEditMode();
+    }
+    
+    function navigateToApp(appId) {
+        const app = getAppById(appId);
+        if (app && app.url) window.location.href = app.url;
+        else alert('应用未找到');
+    }
+    
+    function initSwipe() {
+        const container = document.getElementById('swipeContainer');
+        let touchStartX = 0, touchMoveX = 0;
+        container.addEventListener('touchstart', (e) => { if(!isEditMode) touchStartX = e.touches[0].clientX; });
+        container.addEventListener('touchmove', (e) => { if(!isEditMode) touchMoveX = e.touches[0].clientX - touchStartX; });
+        container.addEventListener('touchend', () => {
+            if(!isEditMode && Math.abs(touchMoveX) > 50) {
+                if(touchMoveX > 0 && currentPage > 0) goToPage(currentPage-1);
+                else if(touchMoveX < 0 && currentPage < TOTAL_PAGES-1) goToPage(currentPage+1);
+            }
+            touchMoveX=0;
+        });
+    }
+    
+    function goToPage(page) { currentPage = page; pagesTrack.style.transform = `translateX(-${currentPage*100}%)`; updateDots(); }
+    function updateDots() { document.querySelectorAll('.dot').forEach((dot,i)=>dot.classList.toggle('active',i===currentPage)); }
+    function renderIndicators() { pageIndicators.innerHTML=''; for(let i=0;i<TOTAL_PAGES;i++){ let dot=document.createElement('div'); dot.className='dot'; if(i===currentPage) dot.classList.add('active'); dot.onclick=()=>goToPage(i); pageIndicators.appendChild(dot);} }
+    
+    function initPagesStructure() {
+        pagesTrack.innerHTML = '';
+        for(let i=0;i<TOTAL_PAGES;i++) { let page=document.createElement('div'); page.className='page'; page.setAttribute('data-page',i); page.innerHTML='<div class="icons-grid"></div>'; pagesTrack.appendChild(page); }
+    }
+    
+    window.addEventListener('storage', (e) => {
+        if (e.key && e.key.startsWith('my_')) {
+            setTimeout(() => applyThemeSettings(), 50);
+        }
+    });
+    
+    function init() {
+        loadAllData();
+        initPagesStructure();
+        renderIndicators();
+        fullRefreshUI();
+        goToPage(0);
+        initSwipe();
+        applyThemeSettings();
+    }
+    init();
+</script>
+</body>
+</html>

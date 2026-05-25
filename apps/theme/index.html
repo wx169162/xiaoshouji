@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>主题设置 - 灵动桌面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .theme-app {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 24px 20px 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .theme-app h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.7;
+            margin-bottom: 28px;
+        }
+
+        .setting-section {
+            margin-bottom: 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 20px;
+        }
+
+        .setting-section h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-row {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .setting-row label {
+            font-size: 15px;
+            font-weight: 500;
+            width: 100px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 160px;
+            height: 4px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            -webkit-appearance: none;
+        }
+        input[type="range"]:focus {
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4caf50;
+            cursor: pointer;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            margin-bottom: 16px;
+        }
+
+        .theme-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1;
+            min-width: 80px;
+        }
+        .theme-btn:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .theme-btn.active {
+            background: #4caf50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+        }
+
+        .reset-btn {
+            background: rgba(255, 100, 100, 0.3);
+            border: 1px solid rgba(255, 100, 100, 0.5);
+            padding: 10px 20px;
+            border-radius: 40px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .reset-btn:active {
+            transform: scale(0.96);
+            background: rgba(255, 100, 100, 0.5);
+        }
+
+        .file-label {
+            background: #2196f3;
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: inline-block;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .file-label:active {
+            transform: scale(0.96);
+        }
+
+        #bgImageInput {
+            display: none;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: 0.2s;
+        }
+        .back-btn:active {
+            transform: scale(0.97);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .preview-hint {
+            font-size: 12px;
+            text-align: center;
+            opacity: 0.6;
+            margin-top: 16px;
+        }
+
+        .size-value {
+            min-width: 45px;
+            text-align: right;
+            font-size: 14px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .button-group .reset-btn {
+            margin-top: 0;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-app">
+        <h1>
+            <span>🎨</span> 主题设置
+        </h1>
+        <div class="subtitle">个性化你的桌面外观</div>
+
+        <div class="setting-section">
+            <h3>📷 壁纸</h3>
+            <div class="setting-row">
+                <label>自定义图片</label>
+                <label class="file-label" for="bgImageInput">📁 从相册选择</label>
+                <input type="file" id="bgImageInput" accept="image/*">
+            </div>
+        </div>
+
+        <div class="setting-section">
+            <h3>🔘 图标外观</h3>
+            <div class="setting-row">
+                <label>图标大小</label>
+                <input type="range" id="iconSizeSlider" min="40" max="80" value="70" step="1">
+                <span id="sizeValue" class="size-value">70px</span>
+            </div>
+            <div class="setting-row">
+                <label>文字颜色</label>
+                <input type="color" id="textColorPicker" value="#FFFFFF">
+            </div>
+        </div>
+
+        <div class="setting-section">
+            <h3>✨ 预设主题</h3>
+            <div class="theme-buttons">
+                <button class="theme-btn" data-theme="light">☀️ 浅色</button>
+                <button class="theme-btn" data-theme="dark">🌙 深色</button>
+                <button class="theme-btn" data-theme="star">⭐ 星空</button>
+            </div>
+            <div class="button-group">
+                <button class="reset-btn" id="resetThemeBtn">🔄 重置所有设置</button>
+            </div>
+        </div>
+
+        <button class="back-btn" id="backBtn">← 返回桌面</button>
+        <div class="preview-hint">所有设置自动保存，实时生效</div>
+    </div>
+
+    <script>
+        // 与主桌面共享 localStorage 的 key
+        const STORAGE_KEYS = {
+            wallpaper: 'my_wallpaper_data',
+            iconSize: 'my_icon_size',
+            textColor: 'my_text_color',
+            themePreset: 'my_theme_preset'
+        };
+
+        // DOM 元素
+        const bgImageInput = document.getElementById('bgImageInput');
+        const iconSizeSlider = document.getElementById('iconSizeSlider');
+        const sizeValueSpan = document.getElementById('sizeValue');
+        const textColorPicker = document.getElementById('textColorPicker');
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        const resetThemeBtn = document.getElementById('resetThemeBtn');
+        const backBtn = document.getElementById('backBtn');
+
+        // 加载已保存的设置
+        function loadSettings() {
+            // 图标大小
+            const savedSize = localStorage.getItem(STORAGE_KEYS.iconSize);
+            if (savedSize) {
+                const size = parseInt(savedSize);
+                iconSizeSlider.value = size;
+                sizeValueSpan.innerText = size + 'px';
+            } else {
+                iconSizeSlider.value = 70;
+                sizeValueSpan.innerText = '70px';
+            }
+
+            // 文字颜色
+            const savedColor = localStorage.getItem(STORAGE_KEYS.textColor);
+            if (savedColor) {
+                textColorPicker.value = savedColor;
+            } else {
+                textColorPicker.value = '#FFFFFF';
+            }
+
+            // 预设主题高亮
+            const savedTheme = localStorage.getItem(STORAGE_KEYS.themePreset);
+            if (savedTheme) {
+                themeBtns.forEach(btn => {
+                    if (btn.getAttribute('data-theme') === savedTheme) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            } else {
+                themeBtns.forEach(btn => btn.classList.remove('active'));
+            }
+        }
+
+        // 保存图标大小
+        function saveIconSize(size) {
+            localStorage.setItem(STORAGE_KEYS.iconSize, size);
+        }
+
+        // 保存文字颜色
+        function saveTextColor(color) {
+            localStorage.setItem(STORAGE_KEYS.textColor, color);
+        }
+
+        // 保存壁纸图片
+        function saveWallpaper(base64) {
+            localStorage.setItem(STORAGE_KEYS.wallpaper, base64);
+            // 清除主题预设，因为自定义壁纸优先级更高
+            localStorage.removeItem(STORAGE_KEYS.themePreset);
+            updateThemeButtonsActive(null);
+        }
+
+        // 应用预设主题并保存
+        function applyPresetTheme(themeType) {
+            // 保存主题预设
+            localStorage.setItem(STORAGE_KEYS.themePreset, themeType);
+            // 清除自定义壁纸，因为预设主题会覆盖
+            localStorage.removeItem(STORAGE_KEYS.wallpaper);
+            
+            // 根据主题类型设置默认文字颜色
+            if (themeType === 'light') {
+                saveTextColor('#1e1e2f');
+                textColorPicker.value = '#1e1e2f';
+            } else if (themeType === 'dark') {
+                saveTextColor('#ffffff');
+                textColorPicker.value = '#ffffff';
+            } else if (themeType === 'star') {
+                saveTextColor('#e0e0ff');
+                textColorPicker.value = '#e0e0ff';
+            }
+            
+            updateThemeButtonsActive(themeType);
+            showToast(`已应用${themeType === 'light' ? '浅色' : themeType === 'dark' ? '深色' : '星空'}主题`);
+        }
+
+        // 重置所有设置
+        function resetAllSettings() {
+            if (confirm('确定要重置所有主题设置吗？这将清除所有自定义壁纸、图标大小、文字颜色和主题预设。')) {
+                // 清除所有存储
+                localStorage.removeItem(STORAGE_KEYS.wallpaper);
+                localStorage.removeItem(STORAGE_KEYS.iconSize);
+                localStorage.removeItem(STORAGE_KEYS.textColor);
+                localStorage.removeItem(STORAGE_KEYS.themePreset);
+                
+                // 重置界面控件
+                iconSizeSlider.value = 70;
+                sizeValueSpan.innerText = '70px';
+                textColorPicker.value = '#FFFFFF';
+                
+                // 清除主题按钮高亮
+                themeBtns.forEach(btn => btn.classList.remove('active'));
+                
+                // 重新加载设置（实际上已经重置为默认）
+                showToast('所有设置已重置为默认值');
+                
+                // 触发存储事件，让桌面页面更新
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: STORAGE_KEYS.themePreset,
+                    newValue: null
+                }));
+            }
+        }
+
+        function updateThemeButtonsActive(activeTheme) {
+            themeBtns.forEach(btn => {
+                if (btn.getAttribute('data-theme') === activeTheme) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // 处理壁纸上传
+        function handleWallpaperUpload(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                saveWallpaper(base64);
+                showToast('壁纸已保存');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 简单提示
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:8px 20px;border-radius:30px;font-size:14px;z-index:2000;animation:fadeInOut 1.5s ease;';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 1500);
+        }
+
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(-50%) scale(0.9); }
+                15% { opacity: 1; transform: translateX(-50%) scale(1); }
+                85% { opacity: 1; transform: translateX(-50%) scale(1); }
+                100% { opacity: 0; transform: translateX(-50%) scale(0.9); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 事件绑定
+        function bindEvents() {
+            iconSizeSlider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                sizeValueSpan.innerText = val + 'px';
+                saveIconSize(parseInt(val));
+                showToast('图标大小已保存');
+            });
+
+            textColorPicker.addEventListener('input', (e) => {
+                saveTextColor(e.target.value);
+                showToast('文字颜色已保存');
+            });
+
+            bgImageInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleWallpaperUpload(e.target.files[0]);
+                }
+            });
+
+            themeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.getAttribute('data-theme');
+                    applyPresetTheme(theme);
+                });
+            });
+
+            resetThemeBtn.addEventListener('click', resetAllSettings);
+
+            backBtn.addEventListener('click', () => {
+                window.location.href = '../../index.html';
+            });
+        }
+
+        // 初始化
+        function init() {
+            loadSettings();
+            bindEvents();
+        }
+
+        init();
+    </script>
+</body>
+</html>
