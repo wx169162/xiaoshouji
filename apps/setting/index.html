@@ -404,6 +404,7 @@
             </div>
             <div id="autoDetectHint" class="helper-text" style="color:#3b82f6;"></div>
         </div>
+        <div class="form-group"><span class="label-text">快捷选模型</span><select id="modelQuickSelect"><option value="">手动输入...</option></select></div>
         <div class="row-flex" style="gap:8px; flex-wrap:wrap">
             <div style="flex:1"><span class="label-text">模型名称 <span id="modelAutoBadge" style="font-size:0.7rem;"></span></span><input type="text" id="modelName" placeholder="deepseek-chat"></div>
             <div style="flex:1"><span class="label-text">备用模型(识图预留)</span><input type="text" id="backupModel" placeholder="预留字段"></div>
@@ -487,19 +488,22 @@
                 patterns: [/sk-[A-Za-z0-9]{32,}/i, /deepseek/i],
                 url: "https://api.deepseek.com/v1/chat/completions",
                 model: "deepseek-chat",
-                keywords: ["deepseek"]
+                keywords: ["deepseek"],
+                models: ["deepseek-chat", "deepseek-reasoner"]
             },
             OpenAI: {
                 patterns: [/sk-proj-[A-Za-z0-9_-]+/i, /sk-[A-Za-z0-9]{48,}/i],
                 url: "https://api.openai.com/v1/chat/completions",
                 model: "gpt-3.5-turbo",
-                keywords: ["openai", "sk-proj"]
+                keywords: ["openai", "sk-proj"],
+                models: ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
             },
             Claude: {
                 patterns: [/sk-ant-[A-Za-z0-9_-]+/i, /claude/i],
                 url: "https://api.anthropic.com/v1/messages",
                 model: "claude-3-sonnet-20240229",
-                keywords: ["ant", "claude"]
+                keywords: ["ant", "claude"],
+                models: ["claude-3-sonnet-20240229", "claude-3-opus-20240229", "claude-3-haiku-20240307"]
             }
         };
 
@@ -508,6 +512,7 @@
             apiUrl: document.getElementById('apiUrl'),
             apiKey: document.getElementById('apiKey'),
             modelName: document.getElementById('modelName'),
+            modelQuickSelect: document.getElementById('modelQuickSelect'),
             backupModel: document.getElementById('backupModel'),
             ttsApiUrl: document.getElementById('ttsApiUrl'),
             ttsKey: document.getElementById('ttsKey'),
@@ -584,6 +589,7 @@
                     const optionExists = [...elements.mainModelSelect.options].some(opt => opt.value === detected.provider);
                     if(optionExists) elements.mainModelSelect.value = detected.provider;
                 }
+                updateModelQuickSelect(detected.provider, detected.model);
                 elements.autoDetectHint.innerHTML = `✨ 识别为 ${detected.provider} · 已自动填充API地址和模型`;
                 if(debugMode) console.log(`[AutoFill] 填充完成: ${detected.provider}`);
             } else {
@@ -593,6 +599,15 @@
                     elements.autoDetectHint.innerHTML = "";
                 }
             }
+        }
+
+        function updateModelQuickSelect(provider, model) {
+            if(!elements.modelQuickSelect) return;
+            const profile = API_PROFILES[provider];
+            if(!profile || !profile.models) { elements.modelQuickSelect.innerHTML = '<option value="">手动输入...</option>'; return; }
+            let html = '<option value="">手动输入...</option>';
+            profile.models.forEach(m => { html += `<option value="${m}" ${m === model ? 'selected' : ''}>${m}</option>`; });
+            elements.modelQuickSelect.innerHTML = html;
         }
 
         function loadSettings() {
@@ -633,6 +648,7 @@
                 if(elements.volumeVal) elements.volumeVal.innerText = "80";
                 applyAutoFill("");
             }
+            updateModelQuickSelect(elements.mainModelSelect ? elements.mainModelSelect.value : 'DeepSeek', elements.modelName ? elements.modelName.value : 'deepseek-chat');
             updateStorageStats();
         }
 
@@ -832,16 +848,21 @@
             if(elements.mainModelSelect) {
                 elements.mainModelSelect.addEventListener('change', () => {
                     const selected = elements.mainModelSelect.value;
+                    updateModelQuickSelect(selected, elements.modelName ? elements.modelName.value : '');
                     if(selected !== "其他" && API_PROFILES[selected] && elements.apiUrl && elements.modelName) {
-                        const currentKey = elements.apiKey ? elements.apiKey.value : "";
-                        const detected = autoDetectProviderFromKey(currentKey);
-                        if(!detected || detected.provider !== selected) {
-                            elements.apiUrl.value = API_PROFILES[selected].url;
-                            elements.modelName.value = API_PROFILES[selected].model;
-                            if(elements.autoDetectHint) {
-                                elements.autoDetectHint.innerHTML = `🔧 手动切换至 ${selected}，已填充默认端点`;
-                            }
+                        elements.apiUrl.value = API_PROFILES[selected].url;
+                        elements.modelName.value = API_PROFILES[selected].model;
+                        updateModelQuickSelect(selected, API_PROFILES[selected].model);
+                        if(elements.autoDetectHint) {
+                            elements.autoDetectHint.innerHTML = `🔧 手动切换至 ${selected}，已填充默认端点`;
                         }
+                    }
+                });
+            }
+            if(elements.modelQuickSelect) {
+                elements.modelQuickSelect.addEventListener('change', () => {
+                    if(elements.modelQuickSelect.value && elements.modelName) {
+                        elements.modelName.value = elements.modelQuickSelect.value;
                     }
                 });
             }
