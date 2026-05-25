@@ -504,42 +504,41 @@
         return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     }
 
-    // 添加消息
+    // 添加消息（格式与 room.html 一致）
     function addMessage(contactId, text, sender) {
         const message = {
-            id: Date.now() + Math.random(),
-            text: text,
-            sender: sender,
+            id: Date.now() + '_' + Math.random(),
+            role: sender === 'user' ? 'user' : 'assistant',
+            content: text,
             timestamp: getCurrentTimeString(),
-            fullDate: new Date()
+            fullDate: new Date().toISOString(),
+            versions: [],
+            isRecalled: false,
+            recalledContent: null
         };
         if (!chatHistory[contactId]) chatHistory[contactId] = [];
         chatHistory[contactId].push(message);
-        saveChatsToLocal();
+        saveChatsToLocal(contactId);
         renderMessageList();
         renderContactsList();
         return message;
     }
 
-    // 保存到 localStorage
-    function saveChatsToLocal() {
+    // 保存到 localStorage（按联系人分开存，与 room.html 一致）
+    function saveChatsToLocal(contactId) {
         try {
-            localStorage.setItem('ai_chat_history', JSON.stringify(chatHistory));
+            localStorage.setItem(`chat_history_${contactId}`, JSON.stringify(chatHistory[contactId] || []));
         } catch(e) { console.warn(e); }
     }
 
     function loadChatsFromLocal() {
-        const saved = localStorage.getItem('ai_chat_history');
-        if (saved) {
+        AI_CONTACTS.forEach(c => {
             try {
-                const parsed = JSON.parse(saved);
-                for (let key in parsed) {
-                    if (chatHistory[key] !== undefined || AI_CONTACTS.some(c => c.id === key)) {
-                        chatHistory[key] = parsed[key];
-                    }
-                }
-            } catch(e) {}
-        }
+                const saved = localStorage.getItem(`chat_history_${c.id}`);
+                if (saved) chatHistory[c.id] = JSON.parse(saved);
+                else chatHistory[c.id] = [];
+            } catch(e) { chatHistory[c.id] = []; }
+        });
     }
 
     // 获取联系人信息
@@ -555,7 +554,7 @@
         const messageItems = AI_CONTACTS.map(contact => {
             const messages = chatHistory[contact.id] || [];
             const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-            let preview = lastMsg ? (lastMsg.sender === 'user' ? `我: ${lastMsg.text}` : `${contact.name}: ${lastMsg.text}`) : '暂无消息，点击开始聊天';
+            let preview = lastMsg ? (lastMsg.role === 'user' ? `我: ${lastMsg.content}` : `${contact.name}: ${lastMsg.content}`) : '暂无消息，点击开始聊天';
             let timeStr = lastMsg ? lastMsg.timestamp : '';
             return {
                 id: contact.id,
