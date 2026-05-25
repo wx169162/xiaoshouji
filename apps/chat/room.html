@@ -932,7 +932,7 @@
     function saveCurrentTab(tabName) { currentTab = tabName; localStorage.setItem(STORAGE_TAB_KEY, tabName); }
     function renderFuncPanel() { return `<div class="panel-tabs"><button class="tab-item active" data-tab="常用">常用</button><button class="tab-item" data-tab="见面">见面</button><button class="tab-item" data-tab="互动">互动</button><button class="tab-item" data-tab="扩展">扩展</button></div><div class="tab-content"><div class="tab-pane active-pane" data-pane="常用"><div class="buttons-grid"><button class="action-btn" data-action="regenerate">🔄 重说</button></div></div></div>`; }
     function bindPanelEvents(panelElement) { const btn = panelElement?.querySelector('[data-action="regenerate"]'); if(btn) btn.onclick = () => regenerateLastAiMessage(); }
-    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>"']/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; if(m==='"') return '&quot;'; if(m==='\'') return '&#39;'; return m;}); }
     
     function scrollChatToBottom() { setTimeout(() => { const area = document.getElementById('messagesArea'); if(area) area.scrollTop = area.scrollHeight; }, 50); }
     function forceScrollToBottom() { const area = document.getElementById('messagesArea'); if(area) { area.scrollTop = area.scrollHeight; setTimeout(() => { area.scrollTop = area.scrollHeight; }, 100); } }

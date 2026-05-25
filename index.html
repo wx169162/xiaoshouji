@@ -539,9 +539,8 @@
             iconDiv.style.top = `${top}px`;
             container.appendChild(iconDiv);
         });
-        setTimeout(() => applyThemeSettings(), 10);
     }
-    
+
     function createIconElement(iconData, pageIdx, idx) {
         const div = document.createElement('div');
         div.className = 'icon-item';
@@ -638,11 +637,12 @@
             emptySlot.style.opacity = '0.4';
             emptySlot.style.backgroundColor = 'rgba(255,255,255,0.1)';
             emptySlot.style.borderRadius = '20px';
+            emptySlot.style.minHeight = '70px';
+            emptySlot.style.maxWidth = '80px';
             emptySlot.setAttribute('data-empty-slot', 'true');
             emptySlot.setAttribute('data-slot-idx', i);
             dockBar.appendChild(emptySlot);
         }
-        setTimeout(() => applyThemeSettings(), 10);
     }
     
     function createDockElement(icon, idx) {
@@ -713,7 +713,6 @@
         renderPageGrid(1);
         renderDock();
         document.body.classList.toggle('edit-mode', isEditMode);
-        applyThemeSettings();
     }
     
     // ---------- 拖拽核心 ----------

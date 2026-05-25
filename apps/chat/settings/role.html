@@ -434,7 +434,7 @@
         if(wb.length===0) wb = [{ id: 'default', name: '默认世界书' }, { id: 'fantasy', name: '奇幻世界' }];
         return wb;
     }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; if(m==='"') return '&quot;'; if(m==='\'') return '&#39;'; return m;}); }
 
     function showAvatarPicker(currentVal, onSelect) {
         const menu = document.createElement('div'); menu.className = 'avatar-picker-menu';
