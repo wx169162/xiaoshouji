@@ -553,6 +553,7 @@
                     <input type="text" id="callPrefer" class="info-input" placeholder="称呼偏好" value="${escapeHtml(settings.callPrefer || '')}">
                     <textarea id="rolePersona" class="textarea-field" rows="2" placeholder="角色人设">${escapeHtml(settings.rolePersona || '')}</textarea>
                     <textarea id="userPersona" class="textarea-field" rows="2" placeholder="我的人设">${escapeHtml(settings.userPersona || '')}</textarea>
+                    <textarea id="styleInstruction" class="textarea-field" rows="2" placeholder="文风指令（如：用第一人称、注重心理描写、每段不超过5行）">${escapeHtml(settings.styleInstruction || '')}</textarea>
                     <select id="worldBook" class="select-field">${worldbooks.map(w => `<option value="${w.id}" ${settings.worldBook===w.id?'selected':''}>${escapeHtml(w.name)}</option>`).join('')}</select>
                     <div class="block-status-row"><span>🚫 拉黑角色</span><button id="blockToggleBtn" class="action-btn" style="background:${settings.isBlocked?'#ff3b30':'#e5e5ea'};color:${settings.isBlocked?'white':'#1c1c1e'}">${settings.isBlocked?'已拉黑，点击解除':'拉黑该角色'}</button></div>
                 </div>
@@ -595,6 +596,7 @@
                 callPrefer: document.getElementById('callPrefer').value, 
                 rolePersona: document.getElementById('rolePersona').value, 
                 userPersona: document.getElementById('userPersona').value, 
+                styleInstruction: document.getElementById('styleInstruction').value,
                 worldBook: document.getElementById('worldBook').value
             });
             alert('角色信息已保存');
