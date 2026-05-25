@@ -1089,7 +1089,7 @@
         inputField.addEventListener('click', handleInputFocus);
         
         toggleBtn.onclick=()=>{ isPanelOpen=!isPanelOpen; panelDiv.classList.toggle('open',isPanelOpen); toggleBtn.textContent=isPanelOpen?'✖':'➕'; }; 
-        sendBtn.onclick=async ()=>{ const text=inputField.value.trim(); if(!text) return; inputField.value=''; if(isLoading){ interruptAndSendNewMessage(text); await requestAIReply(); } else { sendUserMessageOnly(text); await requestAIReply(); } forceScrollToBottom(); }; 
+        sendBtn.onclick=()=>{ const text=inputField.value.trim(); if(!text) return; inputField.value=''; if(isLoading){ interruptAndSendNewMessage(text); } else { sendUserMessageOnly(text); } forceScrollToBottom(); }; 
         aiReplyBtn.onclick=async()=>{ if(isLoading){ if(confirm('AI正在回复中，是否中断并重新请求？')) { if(currentAbortController) currentAbortController.abort(); isLoading=false; renderChatWindow(); await requestAIReply(); } } else { await requestAIReply(); } forceScrollToBottom(); }; 
         inputField.onkeypress=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendBtn.click(); } }; 
         
