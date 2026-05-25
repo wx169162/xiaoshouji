@@ -418,6 +418,7 @@
     }
     function saveAppearance(contactId, app) { localStorage.setItem(getAppearanceKey(contactId), JSON.stringify(app)); }
 
+    function getEstimatedTokens(contactId) { const msgs = JSON.parse(localStorage.getItem(`chat_history_${contactId}`) || '[]'); let chars = 0; msgs.forEach(m => { chars += (m.content || '').length; }); return Math.round(chars / 1.5); }
     function getTotalMessages(contactId) {
         const key = `chat_history_${contactId}`;
         const raw = localStorage.getItem(key);
@@ -560,7 +561,7 @@
                     <div class="row-flex"><span>允许与</span><select id="shareWithSelect"><option value="">无</option>${otherContacts.map(c=>`<option value="${c.id}" ${tempMemory.shareWith===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}</select><span>共享记忆</span></div>
                     <div class="row-flex"><label>上下文记忆条数</label><input type="number" id="contextTokensInput" class="number-input" value="${tempMemory.contextTokens}" step="1" style="flex:1"></div>
                     <div class="row-flex"><span>回复条数区间</span><input type="number" id="replyMin" value="${tempMemory.replyMin}" style="width:80px; background:#f2f2f6; border:none; border-radius:12px; padding:6px; text-align:center"> ~ <input type="number" id="replyMax" value="${tempMemory.replyMax}" style="width:80px; background:#f2f2f6; border:none; border-radius:12px; padding:6px; text-align:center"></div>
-                    <div class="row-flex"><span>💬 总消息数: ${totalMsgs}</span><span>📊 Token估算: ~${totalMsgs * 85} tokens (示例)</span></div>
+                    <div class="row-flex"><span>💬 总消息数: ${totalMsgs}</span><span>📊 估算Token: ~${getEstimatedTokens(currentContact.id)}</span></div>
                 </div>
             </details>
 
@@ -618,11 +619,47 @@
             document.querySelectorAll('.simplifySummaryBtn').forEach(btn => { btn.onclick = () => alert('精简功能占位'); });
         }
         
+        // 真正的总结函数
+        function getApiConfigForSettings() { const s = localStorage.getItem('system_settings'); if (!s) return null; try { const p = JSON.parse(s); return { apiUrl: p.apiUrl, apiKey: p.apiKey, model: p.modelName || 'deepseek-chat' }; } catch(e) { return null; } }
+        async function performSummarization() {
+            const config = getApiConfigForSettings(); if (!config || !config.apiKey) { alert('请先在桌面设置中配置API'); return; }
+            const msgs = JSON.parse(localStorage.getItem(`chat_history_${currentContact.id}`) || '[]');
+            if (msgs.length < 5) { alert('至少需要5条消息才能总结'); return; }
+            document.getElementById('forceSummarizeBtn').disabled = true;
+            document.getElementById('forceSummarizeBtn').textContent = '⏳ 总结中...';
+            try {
+                const chatText = msgs.map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`).join('\n');
+                const prompt = (tempMemory.summaryPrompt || '请将以下对话内容总结为一段简短的摘要，保留关键信息：') + '\n\n对话内容：\n' + chatText;
+                const resp = await fetch(config.apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` }, body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: prompt }], max_tokens: 300, temperature: 0.3 }) });
+                if (!resp.ok) throw new Error('API请求失败');
+                const data = await resp.json();
+                const summary = data.choices?.[0]?.message?.content;
+                if (summary) {
+                    if (!tempMemory.summaries) tempMemory.summaries = [];
+                    tempMemory.summaries.unshift({ time: new Date().toLocaleString(), content: summary });
+                    renderSummaryList();
+                }
+            } catch(e) { alert('总结失败: ' + e.message); }
+            finally { document.getElementById('forceSummarizeBtn').disabled = false; document.getElementById('forceSummarizeBtn').textContent = '✨ 立即总结'; }
+        }
+        async function simplifySelectedSummaries() {
+            const config = getApiConfigForSettings(); if (!config || !config.apiKey) { alert('请先配置API'); return; }
+            if (!tempMemory.summaries || tempMemory.summaries.length === 0) { alert('没有可精简的总结'); return; }
+            const selectedContent = tempMemory.summaries.map((s, i) => `${i+1}. ${s.content}`).join('\n\n');
+            try {
+                const resp = await fetch(config.apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` }, body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: '请将以下多条摘要合并精简为一条简洁的总结，去除重复信息：\n\n' + selectedContent }], max_tokens: 200, temperature: 0.3 }) });
+                if (!resp.ok) throw new Error('API请求失败');
+                const data = await resp.json();
+                const result = data.choices?.[0]?.message?.content;
+                if (result) { tempMemory.summaries = [{ time: new Date().toLocaleString(), content: result }]; renderSummaryList(); }
+            } catch(e) { alert('精简失败: ' + e.message); }
+        }
+
         // 记忆控件绑定
         document.getElementById('triggerCountInput').addEventListener('change', (e) => { let val = parseInt(e.target.value); if (isNaN(val)) val = 50; tempMemory.triggerCount = val; });
         document.getElementById('contextTokensInput').addEventListener('change', (e) => { let val = parseInt(e.target.value); if (isNaN(val)) val = 20; tempMemory.contextTokens = val; });
-        document.getElementById('forceSummarizeBtn').onclick = () => { alert('立即总结占位'); const demo = { time: new Date().toLocaleString(), content: '这是占位总结内容。' }; if(!tempMemory.summaries) tempMemory.summaries=[]; tempMemory.summaries.unshift(demo); renderSummaryList(); };
-        document.getElementById('aiSimplifySelected').onclick = () => alert('AI精简选中占位');
+        document.getElementById('forceSummarizeBtn').onclick = () => performSummarization();
+        document.getElementById('aiSimplifySelected').onclick = () => simplifySelectedSummaries();
         document.getElementById('batchDeleteSummaries').onclick = () => { tempMemory.summaries = []; renderSummaryList(); };
         document.getElementById('summarizeMode').onchange = (e) => { tempMemory.autoSummarize = e.target.value === 'auto'; };
         document.getElementById('summaryPrompt').oninput = (e) => { tempMemory.summaryPrompt = e.target.value; };
