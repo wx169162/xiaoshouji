@@ -121,15 +121,15 @@
         }
 
         .icon-img {
-            width: 60px;
-            height: 60px;
+            width: var(--icon-size, 60px);
+            height: var(--icon-size, 60px);
             background: rgba(0,0,0,0.4);
             backdrop-filter: blur(8px);
             border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: var(--icon-font-size, 32px);
             box-shadow: 0 6px 14px rgba(0,0,0,0.2);
             color: white;
             overflow: hidden;
@@ -210,15 +210,15 @@
         }
 
         .dock-img {
-            width: 50px;
-            height: 50px;
+            width: var(--dock-icon-size, 50px);
+            height: var(--dock-icon-size, 50px);
             background: rgba(0,0,0,0.3);
             backdrop-filter: blur(4px);
             border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: var(--dock-font-size, 28px);
             color: white;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease;
@@ -461,17 +461,11 @@
             
             const savedIconSize = localStorage.getItem(THEME_KEYS.iconSize);
             if (savedIconSize) {
-                const size = parseInt(savedIconSize);
-                document.querySelectorAll('.icon-img').forEach(img => {
-                    img.style.width = `${size}px`;
-                    img.style.height = `${size}px`;
-                    img.style.fontSize = `${Math.max(24, size * 0.5)}px`;
-                });
-                document.querySelectorAll('.dock-img').forEach(img => {
-                    img.style.width = `${Math.max(40, size * 0.8)}px`;
-                    img.style.height = `${Math.max(40, size * 0.8)}px`;
-                    img.style.fontSize = `${Math.max(20, size * 0.45)}px`;
-                });
+                const s = parseInt(savedIconSize);
+                document.documentElement.style.setProperty('--icon-size', s + 'px');
+                document.documentElement.style.setProperty('--dock-icon-size', Math.max(40, s * 0.8) + 'px');
+                document.documentElement.style.setProperty('--icon-font-size', Math.max(24, s * 0.5) + 'px');
+                document.documentElement.style.setProperty('--dock-font-size', Math.max(20, s * 0.45) + 'px');
             }
             
             if (!savedTheme) {
@@ -1021,6 +1015,14 @@
     
     function init() {
         loadAllData();
+        const savedIconSize = localStorage.getItem(THEME_KEYS.iconSize);
+        if (savedIconSize) {
+            const s = parseInt(savedIconSize);
+            document.documentElement.style.setProperty('--icon-size', s + 'px');
+            document.documentElement.style.setProperty('--dock-icon-size', Math.max(40, s * 0.8) + 'px');
+            document.documentElement.style.setProperty('--icon-font-size', Math.max(24, s * 0.5) + 'px');
+            document.documentElement.style.setProperty('--dock-font-size', Math.max(20, s * 0.45) + 'px');
+        }
         initPagesStructure();
         renderIndicators();
         fullRefreshUI();
