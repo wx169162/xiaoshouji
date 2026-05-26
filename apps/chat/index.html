@@ -167,13 +167,48 @@
             align-items: center;
             padding: 12px 16px;
             background: white;
-            border-bottom: 0.5px solid #f0f0f0;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform .2s ease, background .2s;
+            position: relative;
+            z-index: 1;
+            border-bottom: 0.5px solid #f0f0f0;
         }
-
         .chat-item:active {
             background: #f8f8fa;
+        }
+        .chat-swipe-wrap {
+            position: relative;
+            overflow: hidden;
+        }
+        .chat-actions {
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            display: flex;
+            z-index: 0;
+        }
+        .chat-action-btn {
+            width: 72px;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .chat-action-btn.pin { background: #5856d6; }
+        .chat-action-btn.del { background: #ff3b30; }
+        .chat-item.pinned::before {
+            content: '📌';
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-size: 10px;
+            opacity: .6;
+            z-index: 2;
         }
 
         .chat-avatar {
@@ -582,61 +617,88 @@
         const container = document.getElementById('messageListContainer');
         if (!container) return;
         
-        const messageItems = AI_CONTACTS.map(contact => {
-            const messages = chatHistory[contact.id] || [];
-            const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-            let preview = lastMsg ? (lastMsg.role === 'user' ? `我: ${lastMsg.content}` : `${getContactDisplayName(contact)}: ${lastMsg.content}`) : '暂无消息，点击开始聊天';
-            let timeStr = lastMsg ? lastMsg.timestamp : '';
-            return {
-                id: contact.id,
-                name: getContactDisplayName(contact),
-                avatar: contact.avatar,
-                preview: preview,
-                time: timeStr
-            };
-        });
-        
+        const messageItems = [...AI_CONTACTS]
+            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+            .map(contact => {
+                const messages = chatHistory[contact.id] || [];
+                const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+                let preview = lastMsg ? (lastMsg.role === 'user' ? `我: ${lastMsg.content}` : `${getContactDisplayName(contact)}: ${lastMsg.content}`) : '暂无消息，点击开始聊天';
+                let timeStr = lastMsg ? lastMsg.timestamp : '';
+                return {
+                    id: contact.id,
+                    name: getContactDisplayName(contact),
+                    avatar: contact.avatar,
+                    preview: preview,
+                    time: timeStr,
+                    pinned: contact.pinned
+                };
+            });
+
         if (messageItems.length === 0) {
             container.innerHTML = '<div style="padding:40px;text-align:center;color:#8e8e93;">暂无消息记录</div>';
             return;
         }
-        
+
         container.innerHTML = messageItems.map(item => `
-            <div class="chat-item" data-contact-id="${item.id}">
-                ${renderAvatarHtml(item.id, item.avatar)}
-                <div class="chat-info">
-                    <div class="chat-name-row">
-                        <span class="chat-name">${escapeHtml(item.name)}</span>
-                        <span class="chat-time">${item.time}</span>
+            <div class="chat-swipe-wrap" data-contact-id="${item.id}">
+                <div class="chat-actions">
+                    <button class="chat-action-btn pin" data-action="pin" data-id="${item.id}">📌<span>置顶</span></button>
+                    <button class="chat-action-btn del" data-action="del" data-id="${item.id}">🗑️<span>删除</span></button>
+                </div>
+                <div class="chat-item${item.pinned ? ' pinned' : ''}" data-contact-id="${item.id}">
+                    ${renderAvatarHtml(item.id, item.avatar)}
+                    <div class="chat-info">
+                        <div class="chat-name-row">
+                            <span class="chat-name">${escapeHtml(item.name)}</span>
+                            <span class="chat-time">${item.time}</span>
+                        </div>
+                        <div class="chat-preview">${escapeHtml(item.preview)}</div>
                     </div>
-                    <div class="chat-preview">${escapeHtml(item.preview)}</div>
                 </div>
             </div>
         `).join('');
-        
-        // 绑定点击和长按事件
-        document.querySelectorAll('#messageListContainer .chat-item').forEach(el => {
-            let pressTimer;
-            const contactId = el.getAttribute('data-contact-id');
-            el.addEventListener('click', (e) => {
-                window.location.href = `room.html?id=${contactId}`;
+
+        // 绑定事件
+        document.querySelectorAll('#messageListContainer .chat-swipe-wrap').forEach(wrap => {
+            const item = wrap.querySelector('.chat-item');
+            const contactId = wrap.getAttribute('data-contact-id');
+            let startX = 0, moveX = 0, isSwiping = false;
+
+            // 点击
+            item.addEventListener('click', () => {
+                if (!isSwiping) window.location.href = `room.html?id=${contactId}`;
             });
-            el.addEventListener('touchstart', () => {
-                pressTimer = setTimeout(() => {
-                    if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」及其聊天记录？`)) {
-                        deleteContact(contactId);
-                    }
-                }, 600);
+
+            // 左滑
+            item.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; isSwiping = false; });
+            item.addEventListener('touchmove', (e) => {
+                moveX = e.touches[0].clientX - startX;
+                if (moveX < -10) { isSwiping = true; item.style.transform = `translateX(${Math.max(moveX, -144)}px)`; }
             });
-            el.addEventListener('touchend', () => clearTimeout(pressTimer));
-            el.addEventListener('touchmove', () => clearTimeout(pressTimer));
-            el.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」及其聊天记录？`)) {
+            item.addEventListener('touchend', () => {
+                if (moveX < -50) item.style.transform = 'translateX(-144px)';
+                else item.style.transform = 'translateX(0)';
+                setTimeout(() => { isSwiping = false; }, 100);
+            });
+
+            // 按钮
+            wrap.querySelector('[data-action="pin"]').onclick = (e) => {
+                e.stopPropagation();
+                togglePin(contactId);
+                item.style.transform = 'translateX(0)';
+            };
+            wrap.querySelector('[data-action="del"]').onclick = (e) => {
+                e.stopPropagation();
+                if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」？`)) {
                     deleteContact(contactId);
                 }
-            });
+            };
         });
+    }
+
+    function togglePin(contactId) {
+        const c = AI_CONTACTS.find(c => c.id === contactId);
+        if (c) { c.pinned = !c.pinned; saveContacts(AI_CONTACTS); renderMessageList(); }
     }
 
     function deleteContact(contactId) {
