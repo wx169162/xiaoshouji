@@ -746,7 +746,7 @@
     function getMyAvatar(contactId) { const settings = getContactSettings(contactId); return settings.myAvatar || '😀'; }
     function getCurrentTimeString() { const now = new Date(); return `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`; }
     function getContactById(id) { return AI_CONTACTS.find(c => c.id === id); }
-    function getDisplayName() { if (!currentContact) return ''; const settings = getContactSettings(currentContact.id); if (settings.nickname && settings.nickname.trim()) return settings.nickname.trim(); return currentContact.name; }
+    function getDisplayName() { if (!currentContact) return ''; const settings = getContactSettings(currentContact.id); if (settings.nickname && settings.nickname.trim()) return settings.nickname.trim(); if (settings.realName && settings.realName.trim()) return settings.realName.trim(); return currentContact.name; }
     function loadContactsSettings() { const saved = localStorage.getItem('contacts_custom_settings'); if (saved) { try { contactsSettings = JSON.parse(saved); } catch(e) {} } if (!contactsSettings) contactsSettings = {}; }
     function saveContactsSettings() { localStorage.setItem('contacts_custom_settings', JSON.stringify(contactsSettings)); }
     function getContactSettings(contactId) { if (!contactsSettings[contactId]) { contactsSettings[contactId] = { roleAvatar: '🤖', myAvatar: '😀', realName: '', nickname: '', callPrefer: '', rolePersona: '', userPersona: '', worldBook: 'default', isBlocked: false }; saveContactsSettings(); } return contactsSettings[contactId]; }

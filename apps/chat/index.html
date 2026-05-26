@@ -557,6 +557,13 @@
     function getContactById(id) {
         return AI_CONTACTS.find(c => c.id === id);
     }
+    function getContactDisplayName(contact) {
+        const settings = JSON.parse(localStorage.getItem('contacts_custom_settings') || '{}');
+        const s = settings[contact.id];
+        if (s && s.nickname && s.nickname.trim()) return s.nickname.trim();
+        if (s && s.realName && s.realName.trim()) return s.realName.trim();
+        return contact.name;
+    }
     function getContactAvatar(id, fallback) {
         const settings = JSON.parse(localStorage.getItem('contacts_custom_settings') || '{}');
         if (settings[id] && settings[id].roleAvatar) return settings[id].roleAvatar;
@@ -578,11 +585,11 @@
         const messageItems = AI_CONTACTS.map(contact => {
             const messages = chatHistory[contact.id] || [];
             const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-            let preview = lastMsg ? (lastMsg.role === 'user' ? `我: ${lastMsg.content}` : `${contact.name}: ${lastMsg.content}`) : '暂无消息，点击开始聊天';
+            let preview = lastMsg ? (lastMsg.role === 'user' ? `我: ${lastMsg.content}` : `${getContactDisplayName(contact)}: ${lastMsg.content}`) : '暂无消息，点击开始聊天';
             let timeStr = lastMsg ? lastMsg.timestamp : '';
             return {
                 id: contact.id,
-                name: contact.name,
+                name: getContactDisplayName(contact),
                 avatar: contact.avatar,
                 preview: preview,
                 time: timeStr
@@ -655,7 +662,7 @@
             <div class="contact-item" data-contact-id="${contact.id}">
                 ${renderAvatarHtml(contact.id, contact.avatar)}
                 <div class="contact-info">
-                    <div class="contact-name">${escapeHtml(contact.name)}</div>
+                    <div class="contact-name">${escapeHtml(getContactDisplayName(contact))}</div>
                     <div class="contact-desc">${escapeHtml(contact.desc)}</div>
                 </div>
             </div>
