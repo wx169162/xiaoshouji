@@ -1064,23 +1064,32 @@
         messages.forEach(msg => {
             const isUser = msg.role === 'user';
             const avatarHtml = isUser ? renderAvatarHtml(myAvatar) : renderAvatarHtml(roleAvatar);
-            const isSticker = /^\[(sticker|表情):/.test(msg.content);
+            const hasSticker = /\[(sticker|表情):[^\]]+\]/.test(msg.content);
             let displayContent, contentDiv;
-            if (isSticker) {
-                let sContent = msg.content;
-                // AI发出的[sticker:名称]或[表情:名称]（无URL）从库查
+            if (hasSticker) {
+                let sContent = escapeHtml(msg.content);
+                // 无URL的sticker标签 → 从库查URL补上
                 sContent = sContent.replace(/\[(?:sticker|表情):([^\]]+)\](?!\()/g, (match, name) => {
                     const g=JSON.parse(localStorage.getItem('emoji_global')||'[]');
                     const c=JSON.parse(localStorage.getItem('emoji_'+currentContact.id)||'[]');
                     const found=[...g,...c].find(e=>e.name===name.trim());
                     return found ? `[sticker:${name}](${found.url})` : match;
                 });
-                sContent = sContent.replace(/\[(?:sticker|表情):([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(\'$2\')" onerror="this.outerHTML=\'❌\'"></div>');
-                contentDiv = `<div class="emoji-msg ${isUser ? 'user' : 'ai'}">${sContent}</div><div class="message-time">${msg.timestamp}</div>`;
+                // 有URL的sticker标签 → 渲染为图片
+                sContent = sContent.replace(/\[sticker:([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center;margin:4px 0"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(\'$2\')" onerror="this.outerHTML=\'❌\'"></div>');
+                if (msg.isRecalled) {
+                    sContent = `<span class="recalled-badge">⏪ 已撤回</span>${sContent}`;
+                }
+                const pureSticker = /^\[sticker:/.test(msg.content);
+                if (pureSticker) {
+                    contentDiv = `<div class="emoji-msg ${isUser ? 'user' : 'ai'}">${sContent}</div><div class="message-time">${msg.timestamp}</div>`;
+                } else {
+                    contentDiv = `<div class="message-content-area"><div class="message-row ${isUser ? 'user' : 'ai'}">${!isUser ? avatarHtml : ''}<div class="message-bubble" style="font-size: ${appearanceConfig?.fontSize || 16}px;">${sContent}</div>${isUser ? avatarHtml : ''}</div><div class="message-time">${msg.timestamp}</div></div>`;
+                }
             } else {
                 displayContent = escapeHtml(msg.content);
                 if (msg.isRecalled && msg.role === 'user') {
-                    displayContent = `<span class="recalled-badge">⏪ 已撤回</span>${escapeHtml(msg.content)}<span class="view-recall" data-msg-id="${msg.id}" style="color:#007aff; margin-left:8px; text-decoration:underline;">查看原内容</span>`;
+                    displayContent = `<span class="recalled-badge">⏪ 已撤回</span>${displayContent}<span class="view-recall" data-msg-id="${msg.id}" style="color:#007aff; margin-left:8px; text-decoration:underline;">查看原内容</span>`;
                 }
                 contentDiv = `<div class="message-content-area"><div class="message-row ${isUser ? 'user' : 'ai'}">${!isUser ? avatarHtml : ''}<div class="message-bubble" style="font-size: ${appearanceConfig?.fontSize || 16}px;">${displayContent}</div>${isUser ? avatarHtml : ''}</div><div class="message-time">${msg.timestamp}</div></div>`;
             }
