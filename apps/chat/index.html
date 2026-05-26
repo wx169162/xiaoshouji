@@ -172,6 +172,7 @@
             position: relative;
             z-index: 1;
             border-bottom: 0.5px solid #f0f0f0;
+            touch-action: pan-y;
         }
         .chat-item:active {
             background: #f8f8fa;
@@ -659,33 +660,59 @@
         `).join('');
 
         // 绑定事件
+        let openSwipeItem = null;
+        function closeAllSwipes() {
+            document.querySelectorAll('#messageListContainer .chat-item').forEach(el => el.style.transform = 'translateX(0)');
+            openSwipeItem = null;
+        }
+        document.getElementById('messageListContainer').addEventListener('click', (e) => {
+            if (!e.target.closest('.chat-swipe-wrap')) closeAllSwipes();
+        });
+
         document.querySelectorAll('#messageListContainer .chat-swipe-wrap').forEach(wrap => {
             const item = wrap.querySelector('.chat-item');
             const contactId = wrap.getAttribute('data-contact-id');
-            let startX = 0, moveX = 0, isSwiping = false;
+            let startX = 0, startY = 0, moveX = 0, isSwiping = false;
 
-            // 点击
-            item.addEventListener('click', () => {
-                if (!isSwiping) window.location.href = `room.html?id=${contactId}`;
+            // 点击进入聊天
+            item.addEventListener('click', (e) => {
+                if (isSwiping) { e.preventDefault(); e.stopPropagation(); return; }
+                if (openSwipeItem && openSwipeItem !== item) { closeAllSwipes(); return; }
+                window.location.href = `room.html?id=${contactId}`;
             });
 
-            // 左滑
-            item.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; isSwiping = false; });
+            // 左滑手势
+            item.addEventListener('touchstart', (e) => {
+                closeAllSwipes();
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                moveX = 0; isSwiping = false;
+            }, {passive: true});
             item.addEventListener('touchmove', (e) => {
                 moveX = e.touches[0].clientX - startX;
-                if (moveX < -10) { isSwiping = true; item.style.transform = `translateX(${Math.max(moveX, -144)}px)`; }
-            });
+                const moveY = e.touches[0].clientY - startY;
+                if (Math.abs(moveX) > Math.abs(moveY) && moveX < -5) {
+                    isSwiping = true;
+                    item.style.transform = `translateX(${Math.max(moveX, -144)}px)`;
+                    e.preventDefault();
+                }
+            }, {passive: false});
             item.addEventListener('touchend', () => {
-                if (moveX < -50) item.style.transform = 'translateX(-144px)';
-                else item.style.transform = 'translateX(0)';
-                setTimeout(() => { isSwiping = false; }, 100);
+                if (isSwiping && moveX < -60) {
+                    item.style.transform = 'translateX(-144px)';
+                    openSwipeItem = item;
+                } else {
+                    item.style.transform = 'translateX(0)';
+                    openSwipeItem = null;
+                }
+                setTimeout(() => { isSwiping = false; }, 150);
             });
 
             // 按钮
             wrap.querySelector('[data-action="pin"]').onclick = (e) => {
                 e.stopPropagation();
                 togglePin(contactId);
-                item.style.transform = 'translateX(0)';
+                closeAllSwipes();
             };
             wrap.querySelector('[data-action="del"]').onclick = (e) => {
                 e.stopPropagation();
