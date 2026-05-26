@@ -19,9 +19,9 @@ h1{font-size:22px;font-weight:600}
 .btn:active{transform:scale(.97);opacity:.8}
 .danger-zone{margin-top:20px;padding-top:16px;border-top:1px solid #fee2e2}
 .danger-zone h4{color:#dc2626;margin-bottom:12px}
-</style>
+@keyframes pageIn{from{opacity:0}to{opacity:1}}</style>
 </head>
-<body>
+<body style="animation:pageIn .2s ease">
 <div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>⚙️ 数据操作</h1></div>
 <div class="card"><h3>📦 聊天记录</h3>
   <button class="btn btn-secondary" id="importBtn">📥 导入聊天记录</button>

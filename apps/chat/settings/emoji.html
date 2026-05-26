@@ -22,9 +22,9 @@ h1{font-size:22px;font-weight:600}
 .btn-sm.danger{background:#fee2e2;color:#dc2626}
 .btn-sm:active{transform:scale(.95)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-</style>
+@keyframes pageIn{from{opacity:0}to{opacity:1}}</style>
 </head>
-<body>
+<body style="animation:pageIn .2s ease">
 <div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>😜 表情包管理</h1></div>
 
 <div class="card">
