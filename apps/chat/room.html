@@ -318,25 +318,18 @@
             padding: 12px 0 8px 0;
             border-bottom: 0.5px solid #efeff4;
         }
-        .emoji-grid-chat {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            max-height: 260px;
-            overflow-y: auto;
-        }
-        .emoji-chip-chat {
-            width: 64px;
-            height: 64px;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f2f2f6;
-        }
-        .emoji-chip-chat:active { transform: scale(.92); background: #e5e5ea; }
+        .emo-wrap { display: none; background: #fff; border-top: 0.5px solid #e9e9ef; }
+        .emo-cat-bar { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; }
+        .emo-cat-chip { padding: 4px 14px; border-radius: 16px; font-size: 12px; white-space: nowrap; cursor: pointer; background: #f2f2f6; color: #1c1c1e; }
+        .emo-cat-chip.active { background: #007aff; color: #fff; }
+        .emo-cat-chip:active { transform: scale(.95); }
+        .emo-grid-my { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; max-height: 200px; overflow-y: auto; }
+        .emo-chip-my { width: 64px; height: 64px; border-radius: 10px; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #f2f2f6; }
+        .emo-chip-my:active { transform: scale(.92); }
+        .emo-chip-my.selected { outline: 3px solid #007aff; outline-offset: -3px; }
+        .emo-actions { display: flex; gap: 8px; padding: 6px 12px 8px; }
+        .emo-act-btn { padding: 6px 12px; border: none; border-radius: 14px; font-size: 12px; cursor: pointer; background: #f2f2f6; color: #1c1c1e; }
+        .emo-act-btn:active { transform: scale(.95); }
 
         .panel-tabs {
             display: flex;
@@ -779,7 +772,7 @@
     function getApiConfig() { const settings = localStorage.getItem('system_settings'); if (!settings) return null; try { const parsed = JSON.parse(settings); return { apiUrl: parsed.apiUrl || parsed.llm?.apiUrl, apiKey: parsed.apiKey || parsed.llm?.apiKey, model: parsed.modelName || parsed.llm?.model || 'deepseek-chat' }; } catch(e) { return null; } }
     function buildSystemPrompt(contactRole, persona) { let basePrompt = `你是AI助手，当前角色是${contactRole === 'coding' ? '编程助手' : contactRole === 'psychologist' ? '心理顾问' : '通用助手'}。`; const settings = getContactSettings(currentContact.id); if (settings.rolePersona && settings.rolePersona.trim()) basePrompt += ` 额外角色设定：${settings.rolePersona}`; if (settings.userPersona && settings.userPersona.trim()) basePrompt += ` 用户人设参考：${settings.userPersona}`; if (settings.callPrefer && settings.callPrefer.trim()) basePrompt += ` 请用「${settings.callPrefer}」称呼用户。`; if (settings.styleInstruction && settings.styleInstruction.trim()) basePrompt += ` 文风要求：${settings.styleInstruction}`; const gEmojis=JSON.parse(localStorage.getItem('emoji_global')||'[]'); const cEmojis=JSON.parse(localStorage.getItem('emoji_'+currentContact.id)||'[]'); const allEmojis=[...gEmojis,...cEmojis]; if(allEmojis.length>0){ basePrompt+=' 可用表情包（回复时可发送，格式：[表情:名称]）：'; allEmojis.forEach(e=>{basePrompt+=` “${e.name}”`;}); basePrompt+=' 你可在回复中使用 [表情:名称] 来发送表情。'; } if(persona.replyStyle==='gentle') basePrompt+=' 请用温柔体贴的语气说话，多用”呢、哦、呀”等语气词。'; else if(persona.replyStyle==='tsundere') basePrompt+=' 请用傲娇猫娘的语气，说话带”喵~”、”哼”等。'; else if(persona.replyStyle==='cool') basePrompt+=' 请用冷静简洁的风格，像侦探一样分析问题。'; else basePrompt+=' 请用自然友好的语气回答。'; return basePrompt; }
     function getLimitedMessages(contactId) { const messages = chatHistory[contactId] || []; const memCfg = getMemoryConfig(contactId); const contextLimit = memCfg.contextTokens || 20; if (contextLimit <= 0) return []; return messages.slice(-contextLimit); }
-    function getApiMessages(contactId) { const limitedMsgs = getLimitedMessages(contactId); const apiMessages = []; const persona = getCurrentPersona(); const systemContent = buildSystemPrompt(currentContact.role, persona); apiMessages.push({ role: 'system', content: systemContent }); for (let msg of limitedMsgs) { if (!msg.isRecalled) { apiMessages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content }); } } return apiMessages; }
+    function getApiMessages(contactId) { const limitedMsgs = getLimitedMessages(contactId); const apiMessages = []; const persona = getCurrentPersona(); const systemContent = buildSystemPrompt(currentContact.role, persona); apiMessages.push({ role: 'system', content: systemContent }); for (let msg of limitedMsgs) { if (!msg.isRecalled) { let c=msg.content; c=c.replace(/\[sticker:([^\]]+)\]\([^)]+\)/g,'[用户发送了表情：$1]'); apiMessages.push({ role: msg.role==='user'?'user':'assistant', content: c }); } } return apiMessages; }
     async function callDeepSeekAPI(contactId, abortSignal) { const config = getApiConfig(); if (!config || !config.apiUrl || !config.apiKey) throw new Error('请先在桌面设置中配置API'); let apiMessages = getApiMessages(contactId); const isClaude = config.apiUrl.includes('anthropic'); let headers = { 'Content-Type': 'application/json' }; let body; if (isClaude) { headers['x-api-key'] = config.apiKey; headers['anthropic-version'] = '2023-06-01'; const userMessages = apiMessages.filter(m => m.role !== 'system'); const systemMsg = apiMessages.find(m => m.role === 'system'); body = JSON.stringify({ model: config.model, system: systemMsg ? systemMsg.content : '', messages: userMessages, max_tokens: 1024 }); } else { headers['Authorization'] = `Bearer ${config.apiKey}`; body = JSON.stringify({ model: config.model, messages: apiMessages, max_tokens: 1024, temperature: 0.7, stream: true }); } const response = await fetch(config.apiUrl, { method: 'POST', headers, body, signal: abortSignal }); if (!response.ok) { const errorText = await response.text(); throw new Error(`API失败: ${response.status}`); } if (!isClaude) { const assistantMsg = addMessageToHistory(contactId, 'assistant', ''); renderChatWindow(); const reader = response.body.getReader(); const decoder = new TextDecoder(); let fullContent = '', buffer = ''; try { while (true) { const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop() || ''; for (const line of lines) { const trimmed = line.trim(); if (!trimmed || !trimmed.startsWith('data: ')) continue; const data = trimmed.slice(6); if (data === '[DONE]') continue; try { const parsed = JSON.parse(data); const content = parsed.choices?.[0]?.delta?.content; if (content) { fullContent += content; assistantMsg.content = fullContent; renderChatWindow(); scrollChatToBottom(); } } catch(e) {} } } } finally { reader.releaseLock(); assistantMsg.content = fullContent; saveChatsToLocal(); renderChatWindow(); } return fullContent; } const data = await response.json(); let aiContent = ''; if (data.content) aiContent = data.content[0]?.text || ''; else if (data.choices && data.choices[0] && data.choices[0].message) aiContent = data.choices[0].message.content; else throw new Error('API返回格式异常'); addMessageToHistory(contactId, 'assistant', aiContent); renderChatWindow(); return aiContent; }
     function addMessageToHistory(contactId, role, content, customId = null) { const message = { id: customId || Date.now() + '_' + Math.random(), role, content, timestamp: getCurrentTimeString(), fullDate: new Date().toISOString(), versions: [], isRecalled: false, recalledContent: null }; if (!chatHistory[contactId]) chatHistory[contactId] = []; chatHistory[contactId].push(message); saveChatsToLocal(); return message; }
     function saveChatsToLocal() { if (!currentContact) return; localStorage.setItem(`chat_history_${currentContact.id}`, JSON.stringify(chatHistory[currentContact.id] || [])); }
@@ -953,7 +946,7 @@
     // ======================== 原有函数保持不变 ========================
     
     async function requestAIReply() { if (!currentContact) return; const settings = getContactSettings(currentContact.id); if (settings.isBlocked) { alert('该角色已被拉黑'); return; } if (currentAbortController) { currentAbortController.abort(); currentAbortController = null; } isLoading = true; renderChatWindow(); const abortController = new AbortController(); currentAbortController = abortController; try { await callDeepSeekAPI(currentContact.id, abortController.signal); maybeAutoSummarize(currentContact.id); } catch (error) { if (error.name !== 'AbortError') { alert(`AI回复失败: ${error.message}`); renderChatWindow(); } else { renderChatWindow(); } } finally { if (currentAbortController === abortController) currentAbortController = null; isLoading = false; renderChatWindow(); } }
-    function sendEmojiMessage(url, name) { if(!url||!name)return; addMessageToHistory(currentContact.id, 'user', `[表情:${name}](${url})`); renderChatWindow(); }
+    function sendEmojiMessage(url, name) { if(!url||!name)return; addMessageToHistory(currentContact.id, 'user', `[sticker:${name}](${url})`); renderChatWindow(); }
     function sendUserMessageOnly(text) { if (!text.trim()) return; let finalText = text; if (currentQuoteMsg) { const quoteName = currentQuoteMsg.role === 'user' ? '我' : getDisplayName(); finalText = `你引用了${quoteName}的消息：\n「${currentQuoteMsg.content}」\n---\n${text}`; currentQuoteMsg = null; } addMessageToHistory(currentContact.id, 'user', finalText); renderChatWindow(); }
     function interruptAndSendNewMessage(text) { if (currentAbortController) { currentAbortController.abort(); currentAbortController = null; } isLoading = false; sendUserMessageOnly(text); }
     function regenerateLastAiMessage() { const messages = chatHistory[currentContact.id] || []; let lastAiMsg = null; for (let i = messages.length - 1; i >= 0; i--) { if (messages[i].role === 'assistant' && !messages[i].isRecalled) { lastAiMsg = messages[i]; break; } } if (lastAiMsg) regenerateAiMessage(lastAiMsg); else alert('没有可重说的AI消息'); }
@@ -1071,19 +1064,19 @@
         messages.forEach(msg => {
             const isUser = msg.role === 'user';
             const avatarHtml = isUser ? renderAvatarHtml(myAvatar) : renderAvatarHtml(roleAvatar);
-            const isEmoji = /^\[表情:/.test(msg.content);
+            const isSticker = /^\[sticker:/.test(msg.content);
             let displayContent, contentDiv;
-            if (isEmoji) {
-                let emojiContent = msg.content;
-                // 如果只有名称没有URL，从表情库查URL
-                emojiContent = emojiContent.replace(/\[表情:([^\]]+)\](?!\()/g, (match, name) => {
+            if (isSticker) {
+                let sContent = msg.content;
+                // AI发出的[sticker:名称]（无URL）从库查
+                sContent = sContent.replace(/\[sticker:([^\]]+)\](?!\()/g, (match, name) => {
                     const g=JSON.parse(localStorage.getItem('emoji_global')||'[]');
                     const c=JSON.parse(localStorage.getItem('emoji_'+currentContact.id)||'[]');
                     const found=[...g,...c].find(e=>e.name===name.trim());
-                    return found ? `[表情:${name}](${found.url})` : match;
+                    return found ? `[sticker:${name}](${found.url})` : match;
                 });
-                emojiContent = emojiContent.replace(/\[表情:([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block" onerror="this.outerHTML=\'❌\'"><span style="font-size:10px;color:#8e8e93;margin-top:2px;display:inline-block">$1</span></div>');
-                contentDiv = `<div class="emoji-msg ${isUser ? 'user' : 'ai'}">${emojiContent}</div><div class="message-time">${msg.timestamp}</div>`;
+                sContent = sContent.replace(/\[sticker:([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(\'$2\')" onerror="this.outerHTML=\'❌\'"></div>');
+                contentDiv = `<div class="emoji-msg ${isUser ? 'user' : 'ai'}">${sContent}</div><div class="message-time">${msg.timestamp}</div>`;
             } else {
                 displayContent = escapeHtml(msg.content);
                 if (msg.isRecalled && msg.role === 'user') {
@@ -1117,37 +1110,75 @@
         const oldInput=document.querySelector('.input-container'); if(oldInput) oldInput.remove();
         const inputContainer=document.createElement('div'); inputContainer.className='input-container';
         const panelDiv=document.createElement('div'); panelDiv.className=`func-panel ${isPanelOpen?'open':''}`; panelDiv.innerHTML=renderFuncPanel();
-        const emojiPanel=document.createElement('div'); emojiPanel.className='func-panel'; emojiPanel.id='emojiPanel'; emojiPanel.innerHTML='<div style="padding:12px"><div class="emoji-grid-chat" id="emojiGridChat"></div></div>';
+        // 我的表情面板——撑开在输入栏上方
+        const emoWrap=document.createElement('div'); emoWrap.id='emoWrap'; emoWrap.className='emo-wrap';
+        const emoCatBar=document.createElement('div'); emoCatBar.className='emo-cat-bar'; emoCatBar.id='emoCatBar';
+        const emoGrid=document.createElement('div'); emoGrid.className='emo-grid-my'; emoGrid.id='emoGridMy';
+        const emoActions=document.createElement('div'); emoActions.className='emo-actions';
+        emoActions.innerHTML='<button id="emoAddBtn" class="emo-act-btn">➕ 添加</button><button id="emoEditBtn" class="emo-act-btn">☑️ 编辑</button><button id="emoCatAddBtn" class="emo-act-btn">📁 新分类</button>';
+        emoWrap.appendChild(emoCatBar); emoWrap.appendChild(emoGrid); emoWrap.appendChild(emoActions);
         const chatInputBar=document.createElement('div'); chatInputBar.className='chat-input-bar';
         const toggleBtn=document.createElement('button'); toggleBtn.className='panel-toggle-btn'; toggleBtn.textContent=isPanelOpen?'✖':'➕';
-        const emojiBtn=document.createElement('button'); emojiBtn.className='icon-btn'; emojiBtn.innerHTML='😊';
+        const emojiBtn=document.createElement('button'); emojiBtn.className='icon-btn'; emojiBtn.id='emojiToggleBtn'; emojiBtn.innerHTML='😊';
         const inputField=document.createElement('input'); inputField.type='text'; inputField.className='chat-input'; inputField.id='chatInput'; inputField.placeholder='输入消息...';
         const buttonGroup=document.createElement('div'); buttonGroup.className='button-group';
         const aiReplyBtn=document.createElement('button'); aiReplyBtn.className='icon-btn ai-btn'; aiReplyBtn.innerHTML='🤖';
         const sendBtn=document.createElement('button'); sendBtn.className='icon-btn send-btn'; sendBtn.innerHTML='📤';
         buttonGroup.appendChild(aiReplyBtn); buttonGroup.appendChild(sendBtn);
         chatInputBar.appendChild(toggleBtn); chatInputBar.appendChild(emojiBtn); chatInputBar.appendChild(inputField); chatInputBar.appendChild(buttonGroup);
-        inputContainer.appendChild(panelDiv); inputContainer.appendChild(emojiPanel); inputContainer.appendChild(chatInputBar); container.appendChild(inputContainer);
+        inputContainer.appendChild(panelDiv); inputContainer.appendChild(emoWrap); inputContainer.appendChild(chatInputBar); container.appendChild(inputContainer);
         bindPanelEvents(panelDiv);
-        let isEmojiOpen=false;
-        emojiBtn.onclick=()=>{ isEmojiOpen=!isEmojiOpen; panelDiv.classList.remove('open'); isPanelOpen=false; toggleBtn.textContent='➕'; emojiPanel.classList.toggle('open',isEmojiOpen); if(isEmojiOpen)renderEmojiGridChat(); };
-        function renderEmojiGridChat(){
-            const grid=document.getElementById('emojiGridChat');if(!grid)return;
-            const g=JSON.parse(localStorage.getItem('emoji_global')||'[]');
-            const c=JSON.parse(localStorage.getItem('emoji_'+currentContact.id)||'[]');
-            const all=[...g,...c];
-            if(!all.length){grid.innerHTML='<div style="text-align:center;padding:16px;color:#8e8e93">暂无表情，去设置页添加</div>';return}
-            grid.innerHTML=all.map(e=>{
+
+        let isEmoOpen=false, emoEditMode=false, myEmojis=[], emoCat='未分类', emoSelected=[];
+        function loadMyEmojis(){try{myEmojis=JSON.parse(localStorage.getItem('my_emojis')||'[]')}catch(e){myEmojis=[]}}
+        function saveMyEmojis(){localStorage.setItem('my_emojis',JSON.stringify(myEmojis))}
+        function getMyCats(){const cats=new Set();myEmojis.forEach(e=>cats.add(e.category||'未分类'));return[...cats]}
+        function renderEmoPanel(){
+            emoWrap.style.display=isEmoOpen?'block':'none';if(!isEmoOpen)return;
+            const cats=getMyCats();emoCatBar.innerHTML=cats.map(c=>`<span class="emo-cat-chip${c===emoCat?' active':''}" onclick="window._emoSetCat('${c}')">${c}</span>`).join('');
+            const list=myEmojis.filter(e=>(e.category||'未分类')===emoCat);
+            if(!list.length){emoGrid.innerHTML='<div style="text-align:center;padding:16px;color:#8e8e93">暂无表情</div>';return}
+            emoGrid.innerHTML=list.map((e,i)=>{
+                const realIdx=myEmojis.indexOf(e);
                 const isImg=e.url&&e.url.startsWith('http');
-                return `<div class="emoji-chip-chat" onclick="sendEmojiMessage('${e.url||''}','${e.name}');document.getElementById('emojiPanel').classList.remove('open');" title="${e.name}">${isImg?`<img src="${e.url}" onerror="this.outerHTML='❌'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`:`<span style="font-size:28px">${e.url||'😊'}</span>`}</div>`;
+                const sel=emoSelected.includes(realIdx)?' selected':'';
+                return `<div class="emo-chip-my${sel}" data-idx="${realIdx}" onclick="${emoEditMode?`window._emoToggleSel(${realIdx})`:`window._emoSend('${e.url}','${e.name}')`}">${isImg?`<img src="${e.url}" onerror="this.outerHTML='❌'" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`:`<span style="font-size:28px">${e.url||'😊'}</span>`}</div>`;
             }).join('');
         }
+        window._emoSetCat=(c)=>{emoCat=c;emoSelected=[];renderEmoPanel()};
+        window._emoSend=(url,name)=>{sendEmojiMessage(url,name);isEmoOpen=false;renderEmoPanel()};
+        window._emoToggleSel=(i)=>{const idx=emoSelected.indexOf(i);if(idx>-1)emoSelected.splice(idx,1);else emoSelected.push(i);renderEmoPanel()};
+        loadMyEmojis();
+        emojiBtn.onclick=()=>{isEmoOpen=!isEmoOpen;panelDiv.classList.remove('open');isPanelOpen=false;toggleBtn.textContent='➕';renderEmoPanel();forceScrollToBottom()};
+        document.getElementById('emoEditBtn').onclick=()=>{emoEditMode=!emoEditMode;emoSelected=[];document.getElementById('emoEditBtn').textContent=emoEditMode?'✅ 完成':'☑️ 编辑';
+            if(!emoEditMode){
+                document.getElementById('emoAddBtn').style.display='';document.getElementById('emoCatAddBtn').style.display='';
+            }else{
+                document.getElementById('emoAddBtn').style.display='none';document.getElementById('emoCatAddBtn').style.display='none';
+            }
+            renderEmoPanel()};
+        document.getElementById('emoAddBtn').onclick=()=>{
+            const ov=document.createElement('div');ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+            ov.innerHTML=`<div style="background:#fff;border-radius:20px;padding:20px;width:90%;max-width:380px"><h3 style="margin-bottom:8px">➕ 添加表情</h3><p style="font-size:11px;color:#94a3b8;margin-bottom:8px">每行一个：名称（空格）url</p><textarea id="emoBatchInput" rows="5" placeholder="坏狗狗 https://i.postimg.cc/xxx.png" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;font-size:14px;resize:vertical"></textarea><div style="display:flex;gap:10px;margin-top:12px"><button id="emoBatchOk" style="flex:1;padding:10px;background:#007aff;color:#fff;border:none;border-radius:16px;font-size:14px;cursor:pointer">添加</button><button id="emoBatchCancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:16px;font-size:14px;cursor:pointer">取消</button></div></div>`;
+            document.body.appendChild(ov);
+            document.getElementById('emoBatchCancel').onclick=()=>ov.remove();
+            document.getElementById('emoBatchOk').onclick=()=>{
+                const raw=document.getElementById('emoBatchInput').value.trim();if(!raw){ov.remove();return}
+                raw.split('\n').filter(l=>l.trim()).forEach(line=>{
+                    const t=line.trim();let name=t,url='😊';const ls=t.lastIndexOf(' ');if(ls>0){const w=t.slice(ls+1);if(w.startsWith('http')){name=t.slice(0,ls);url=w}}
+                    myEmojis.push({id:Date.now()+Math.random(),name,url,category:emoCat});
+                });
+                saveMyEmojis();renderEmoPanel();ov.remove();
+            };
+            ov.onclick=e=>{if(e.target===ov)ov.remove()};
+        };
+        document.getElementById('emoCatAddBtn').onclick=()=>{const c=prompt('新分类名称');if(c&&c.trim()){emoCat=c.trim();renderEmoPanel()}};
 
         const handleInputFocus = () => { forceScrollToBottom(); };
         inputField.addEventListener('focus', handleInputFocus);
         inputField.addEventListener('click', handleInputFocus);
 
-        toggleBtn.onclick=()=>{ isPanelOpen=!isPanelOpen; emojiPanel.classList.remove('open'); isEmojiOpen=false; panelDiv.classList.toggle('open',isPanelOpen); toggleBtn.textContent=isPanelOpen?'✖':'➕'; };
+        toggleBtn.onclick=()=>{ isPanelOpen=!isPanelOpen; isEmoOpen=false; renderEmoPanel(); panelDiv.classList.toggle('open',isPanelOpen); toggleBtn.textContent=isPanelOpen?'✖':'➕'; };
         sendBtn.onclick=()=>{ const text=inputField.value.trim(); if(!text) return; inputField.value=''; if(isLoading){ interruptAndSendNewMessage(text); } else { sendUserMessageOnly(text); } forceScrollToBottom(); };
         aiReplyBtn.onclick=async()=>{ if(isLoading){ if(confirm('AI正在回复中，是否中断并重新请求？')) { if(currentAbortController) currentAbortController.abort(); isLoading=false; renderChatWindow(); await requestAIReply(); } } else { await requestAIReply(); } forceScrollToBottom(); };
         inputField.onkeypress=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendBtn.click(); } }; 
