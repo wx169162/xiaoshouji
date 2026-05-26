@@ -376,11 +376,7 @@
     function loadContactsForSettings() {
         const saved = localStorage.getItem('contacts');
         if (saved) { try { const c = JSON.parse(saved); if (c.length) return c; } catch(e) {} }
-        const defaults = [
-            { id: 'ai_general', name: '通用助手', avatar: '🤖', desc: '全能AI助手', role: 'general' },
-            { id: 'ai_coding', name: '编程助手', avatar: '💻', desc: '专注代码', role: 'coding' },
-            { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', desc: '情绪支持', role: 'psychologist' }
-        ];
+        const defaults = [];
         localStorage.setItem('contacts', JSON.stringify(defaults));
         return defaults;
     }

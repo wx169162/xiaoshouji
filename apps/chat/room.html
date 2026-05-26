@@ -713,11 +713,7 @@
         if (saved) {
             try { const c = JSON.parse(saved); if (c.length) return c; } catch(e) {}
         }
-        const defaults = [
-            { id: 'ai_general', name: '通用助手', avatar: '🤖', role: 'general' },
-            { id: 'ai_coding', name: '编程助手', avatar: '💻', role: 'coding' },
-            { id: 'ai_psychologist', name: '心理顾问', avatar: '🌿', role: 'psychologist' }
-        ];
+        const defaults = [];
         localStorage.setItem('contacts', JSON.stringify(defaults));
         return defaults;
     }
