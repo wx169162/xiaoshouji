@@ -52,7 +52,12 @@ function render(){
 document.getElementById('tabGlobal').onclick=()=>{currentTab='global';document.getElementById('tabGlobal').classList.add('active');document.getElementById('tabCustom').classList.remove('active');render()};
 document.getElementById('tabCustom').onclick=()=>{currentTab='custom';document.getElementById('tabCustom').classList.add('active');document.getElementById('tabGlobal').classList.remove('active');render()};
 document.getElementById('addEmojiBtn').onclick=()=>{
-  const name=prompt('表情名称');if(!name)return;const url=prompt('表情符号或URL','😊');if(!url)return;
+  const input=prompt('名称 URL\n（如：等待回复 https://i.postimg.cc/xxx.png）');
+  if(!input)return;
+  const t=input.trim();
+  let name=t,url='😊';
+  const lastSpace=t.lastIndexOf(' ');
+  if(lastSpace>0){const w=t.slice(lastSpace+1);if(w.startsWith('http')){name=t.slice(0,lastSpace);url=w;}}
   const emoji={id:Date.now().toString(),name,url};
   if(currentTab==='global')globalEmojis.push(emoji);else customEmojis.push(emoji);
   save();render();
