@@ -1064,18 +1064,18 @@
         messages.forEach(msg => {
             const isUser = msg.role === 'user';
             const avatarHtml = isUser ? renderAvatarHtml(myAvatar) : renderAvatarHtml(roleAvatar);
-            const isSticker = /^\[sticker:/.test(msg.content);
+            const isSticker = /^\[(sticker|表情):/.test(msg.content);
             let displayContent, contentDiv;
             if (isSticker) {
                 let sContent = msg.content;
-                // AI发出的[sticker:名称]（无URL）从库查
-                sContent = sContent.replace(/\[sticker:([^\]]+)\](?!\()/g, (match, name) => {
+                // AI发出的[sticker:名称]或[表情:名称]（无URL）从库查
+                sContent = sContent.replace(/\[(?:sticker|表情):([^\]]+)\](?!\()/g, (match, name) => {
                     const g=JSON.parse(localStorage.getItem('emoji_global')||'[]');
                     const c=JSON.parse(localStorage.getItem('emoji_'+currentContact.id)||'[]');
                     const found=[...g,...c].find(e=>e.name===name.trim());
                     return found ? `[sticker:${name}](${found.url})` : match;
                 });
-                sContent = sContent.replace(/\[sticker:([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(\'$2\')" onerror="this.outerHTML=\'❌\'"></div>');
+                sContent = sContent.replace(/\[(?:sticker|表情):([^\]]+)\]\(([^)]+)\)/g, '<div style="text-align:center"><img src="$2" alt="$1" style="max-width:120px;max-height:120px;border-radius:8px;display:block;cursor:pointer" onclick="window.open(\'$2\')" onerror="this.outerHTML=\'❌\'"></div>');
                 contentDiv = `<div class="emoji-msg ${isUser ? 'user' : 'ai'}">${sContent}</div><div class="message-time">${msg.timestamp}</div>`;
             } else {
                 displayContent = escapeHtml(msg.content);
