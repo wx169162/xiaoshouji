@@ -561,6 +561,18 @@
     function getContactById(id) {
         return AI_CONTACTS.find(c => c.id === id);
     }
+    function getContactAvatar(id, fallback) {
+        const settings = JSON.parse(localStorage.getItem('contacts_custom_settings') || '{}');
+        if (settings[id] && settings[id].roleAvatar) return settings[id].roleAvatar;
+        return fallback || '🤖';
+    }
+    function renderAvatarHtml(contactId, fallbackEmoji) {
+        const av = getContactAvatar(contactId, fallbackEmoji);
+        if (av.startsWith('data:') || av.startsWith('http')) {
+            return `<div class="chat-avatar" style="background-image:url(${av});background-size:cover;background-position:center"></div>`;
+        }
+        return `<div class="chat-avatar">${av}</div>`;
+    }
 
     // 渲染消息列表
     function renderMessageList() {
@@ -588,7 +600,7 @@
         
         container.innerHTML = messageItems.map(item => `
             <div class="chat-item" data-contact-id="${item.id}">
-                <div class="chat-avatar">${item.avatar}</div>
+                ${renderAvatarHtml(item.id, item.avatar)}
                 <div class="chat-info">
                     <div class="chat-name-row">
                         <span class="chat-name">${escapeHtml(item.name)}</span>
@@ -615,7 +627,7 @@
         if (!container) return;
         container.innerHTML = AI_CONTACTS.map(contact => `
             <div class="contact-item" data-contact-id="${contact.id}">
-                <div class="contact-avatar">${contact.avatar}</div>
+                ${renderAvatarHtml(contact.id, contact.avatar)}
                 <div class="contact-info">
                     <div class="contact-name">${escapeHtml(contact.name)}</div>
                     <div class="contact-desc">${escapeHtml(contact.desc)}</div>
@@ -685,31 +697,60 @@
     if (plusBtn) plusBtn.addEventListener('click', showCreateContactModal);
 
     // ========== 创建角色弹窗 ==========
+    let tempNewAvatar = '🤖';
     function showCreateContactModal() {
+        tempNewAvatar = '🤖';
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
-        overlay.innerHTML = `<div style="background:#fff;border-radius:24px;padding:24px;width:90%;max-width:360px;animation:slideUp .25s ease">
-            <h3 style="margin-bottom:16px">➕ 创建角色</h3>
-            <input id="newContactName" placeholder="角色名称" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px">
-            <input id="newContactAvatar" placeholder="头像 emoji（如 🤖）" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px" value="🤖">
-            <input id="newContactDesc" placeholder="一句话简介" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px">
-            <select id="newContactRole" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;font-size:15px">
-                <option value="general">通用</option><option value="coding">编程</option><option value="psychologist">心理</option>
-            </select>
-            <div style="display:flex;gap:10px"><button id="confirmCreateBtn" style="flex:1;padding:12px;background:#007aff;color:#fff;border:none;border-radius:20px;font-size:15px;cursor:pointer">创建</button><button id="cancelCreateBtn" style="flex:1;padding:12px;background:#f1f5f9;border:none;border-radius:20px;font-size:15px;cursor:pointer">取消</button></div>
+        overlay.innerHTML = `<div style="background:#fff;border-radius:24px;padding:28px 24px;width:90%;max-width:340px;text-align:center">
+            <h3 style="margin-bottom:20px;font-size:18px">➕ 加好友</h3>
+            <div style="display:flex;justify-content:center;margin-bottom:20px">
+                <div id="newAvatarPreview" style="width:80px;height:80px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;overflow:hidden;background-size:cover;background-position:center;border:2px solid #e2e8f0">🤖</div>
+            </div>
+            <input type="file" id="newAvatarFileInput" accept="image/*" style="display:none">
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">点击头像上传图片，留空使用emoji</div>
+            <input id="newContactName" placeholder="角色名称" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:10px;font-size:15px;text-align:center">
+            <input id="newContactId" placeholder="ID（留空自动生成）" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:20px;font-size:13px;text-align:center;color:#94a3b8">
+            <div style="display:flex;gap:10px"><button id="confirmCreateBtn" style="flex:1;padding:12px;background:#007aff;color:#fff;border:none;border-radius:20px;font-size:15px;cursor:pointer">加好友</button><button id="cancelCreateBtn" style="flex:1;padding:12px;background:#f1f5f9;border:none;border-radius:20px;font-size:15px;cursor:pointer">取消</button></div>
         </div>`;
         document.body.appendChild(overlay);
+        const avatarPreview = document.getElementById('newAvatarPreview');
+        avatarPreview.onclick = () => document.getElementById('newAvatarFileInput').click();
+        document.getElementById('newAvatarFileInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX = 200; let w = img.width, h = img.height;
+                    if (w > MAX) { h = h * (MAX / w); w = MAX; }
+                    if (h > MAX) { w = w * (MAX / h); h = MAX; }
+                    const c = document.createElement('canvas'); c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    tempNewAvatar = c.toDataURL('image/jpeg', 0.7);
+                    avatarPreview.style.backgroundImage = `url(${tempNewAvatar})`;
+                    avatarPreview.textContent = '';
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
         document.getElementById('cancelCreateBtn').onclick = () => overlay.remove();
         document.getElementById('confirmCreateBtn').onclick = () => {
             const name = document.getElementById('newContactName').value.trim();
             if (!name) { alert('请输入角色名称'); return; }
-            const avatar = document.getElementById('newContactAvatar').value.trim() || '🤖';
-            const desc = document.getElementById('newContactDesc').value.trim() || '';
-            const role = document.getElementById('newContactRole').value;
-            const newId = 'custom_' + Date.now();
-            AI_CONTACTS.push({ id: newId, name, avatar, desc, role });
+            let newId = document.getElementById('newContactId').value.trim();
+            if (!newId) newId = 'custom_' + Date.now();
+            if (AI_CONTACTS.some(c => c.id === newId)) { alert('ID已存在，请换一个'); return; }
+            const avatar = tempNewAvatar;
+            AI_CONTACTS.push({ id: newId, name, avatar, desc: '', role: 'general' });
             saveContacts(AI_CONTACTS);
             chatHistory[newId] = [];
+            // 同时初始化 contacts_custom_settings，使头像同步
+            const css = JSON.parse(localStorage.getItem('contacts_custom_settings') || '{}');
+            css[newId] = { roleAvatar: avatar, myAvatar: '😀', realName: name, nickname: '', callPrefer: '', rolePersona: '', userPersona: '', styleInstruction: '', worldBook: 'default', isBlocked: false };
+            localStorage.setItem('contacts_custom_settings', JSON.stringify(css));
             renderMessageList();
             renderContactsList();
             overlay.remove();
