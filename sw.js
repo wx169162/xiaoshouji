@@ -1,4 +1,4 @@
-const CACHE = 'xiaoshouji-v2';
+const CACHE = 'xiaoshouji-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
