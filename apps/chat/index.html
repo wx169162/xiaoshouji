@@ -808,15 +808,13 @@
         loadChatsFromLocal();
         renderMessageList();
         renderContactsList();
-        
-        // 如果没有欢迎语，添加一条默认
-        if (chatHistory['ai_general'] && chatHistory['ai_general'].length === 0) {
-            setTimeout(() => {
-                addMessage('ai_general', '你好！我是通用助手，有什么可以帮你的吗？', 'ai');
-            }, 100);
-        }
     }
-    
+    window.addEventListener('pageshow', function() {
+        AI_CONTACTS = loadContacts();
+        renderMessageList();
+        renderContactsList();
+    });
+
     init();
 </script>
 </body>
