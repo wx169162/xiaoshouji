@@ -181,6 +181,13 @@
             justify-content: flex-start;
         }
 
+        .message-row.is-emoji.user {
+            justify-content: flex-end;
+        }
+        .message-row.is-emoji.ai {
+            justify-content: flex-start;
+        }
+
         .avatar-small {
             width: 36px;
             height: 36px;
@@ -1067,17 +1074,19 @@
         messages.forEach(msg => {
             const isUser = msg.role === 'user';
             const avatarHtml = isUser ? renderAvatarHtml(myAvatar) : renderAvatarHtml(roleAvatar);
-            let displayContent;
-            if (/^\[表情:/.test(msg.content)) {
-                displayContent = msg.content.replace(/\[表情:([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" title="$1" style="max-width:160px;max-height:160px;border-radius:12px;display:block" onerror="this.outerHTML=\'❌\'"><span style="font-size:11px;color:#8e8e93">$1</span>');
+            const isEmoji = /^\[表情:/.test(msg.content);
+            let displayContent, contentDiv;
+            if (isEmoji) {
+                displayContent = msg.content.replace(/\[表情:([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" title="$1" style="max-width:120px;max-height:120px;border-radius:8px" onerror="this.outerHTML=\'❌\'">');
+                contentDiv = `<div class="message-row is-emoji ${isUser ? 'user' : 'ai'}">${displayContent}</div><div class="message-time">${msg.timestamp}</div>`;
             } else {
                 displayContent = escapeHtml(msg.content);
-            }
-            if (msg.isRecalled && msg.role === 'user') {
-                displayContent = `<span class="recalled-badge">⏪ 已撤回</span>${escapeHtml(msg.content)}<span class="view-recall" data-msg-id="${msg.id}" style="color:#007aff; margin-left:8px; text-decoration:underline;">查看原内容</span>`;
+                if (msg.isRecalled && msg.role === 'user') {
+                    displayContent = `<span class="recalled-badge">⏪ 已撤回</span>${escapeHtml(msg.content)}<span class="view-recall" data-msg-id="${msg.id}" style="color:#007aff; margin-left:8px; text-decoration:underline;">查看原内容</span>`;
+                }
+                contentDiv = `<div class="message-content-area"><div class="message-row ${isUser ? 'user' : 'ai'}">${!isUser ? avatarHtml : ''}<div class="message-bubble" style="font-size: ${appearanceConfig?.fontSize || 16}px;">${displayContent}</div>${isUser ? avatarHtml : ''}</div><div class="message-time">${msg.timestamp}</div></div>`;
             }
             const checkboxHtml = isMultiSelectMode ? `<div class="multi-checkbox ${selectedMsgIds.has(msg.id) ? 'selected' : ''}" data-id="${msg.id}"></div>` : '';
-            const contentDiv = `<div class="message-content-area"><div class="message-row ${isUser ? 'user' : 'ai'}">${!isUser ? avatarHtml : ''}<div class="message-bubble" style="font-size: ${appearanceConfig?.fontSize || 16}px;">${displayContent}</div>${isUser ? avatarHtml : ''}</div><div class="message-time">${msg.timestamp}</div></div>`;
             messagesHtml += `<div class="message-wrapper ${isMultiSelectMode ? 'multi-select-mode' : ''}" data-msg-id="${msg.id}">${checkboxHtml}${contentDiv}</div>`;
         });
         if (messages.length === 0) messagesHtml = '<div class="empty-chat">✨ 开始聊天吧~</div>';
