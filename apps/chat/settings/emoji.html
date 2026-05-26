@@ -15,9 +15,14 @@ h1{font-size:22px;font-weight:600}
 .tab{padding:8px 16px;border:none;border-radius:16px;font-size:14px;cursor:pointer;background:#f1f5f9;color:#1e293b}
 .tab.active{background:#007aff;color:#fff}
 .tab:active{transform:scale(.96)}
-.emoji-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
-.emoji-card{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f8fafc;border-radius:14px;font-size:14px;cursor:pointer}
-.emoji-card input{margin:0}
+.emoji-grid{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.emoji-card{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;cursor:pointer}
+.emoji-thumb{width:72px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border:2px solid transparent}
+.emoji-thumb img{width:100%;height:100%;object-fit:cover}
+.emoji-thumb .emoji-text{font-size:32px}
+.emoji-name{font-size:11px;color:#475569;text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emoji-card input{position:absolute;top:4px;left:4px;margin:0;transform:scale(.8)}
+.emoji-card.selected .emoji-thumb{border-color:#007aff}
 .btn-sm{padding:8px 16px;border:none;border-radius:16px;font-size:13px;cursor:pointer;background:#f1f5f9;color:#1e293b;margin-right:6px}
 .btn-sm.danger{background:#fee2e2;color:#dc2626}
 .btn-sm:active{transform:scale(.95)}
@@ -47,7 +52,10 @@ function save(){localStorage.setItem('emoji_global',JSON.stringify(globalEmojis)
 function render(){
   const list=currentTab==='global'?globalEmojis:customEmojis,grid=document.getElementById('emojiGrid');
   if(!list.length){grid.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;width:100%">暂无表情，点击添加</div>';return}
-  grid.innerHTML=list.map((e,i)=>`<label class="emoji-card"><input type="checkbox" class="emoji-cb" data-i="${i}"><span>${esc(e.url||'😊')} ${esc(e.name)}</span></label>`).join('');
+  grid.innerHTML=list.map((e,i)=>{
+    const isImg=e.url&&e.url.startsWith('http');
+    return `<label class="emoji-card"><input type="checkbox" class="emoji-cb" data-i="${i}"><div class="emoji-thumb">${isImg?`<img src="${esc(e.url)}" onerror="this.parentElement.innerHTML='<span style=font-size:28px>❌</span>'">`:`<span class="emoji-text">${esc(e.url||'😊')}</span>`}</div><div class="emoji-name">${esc(e.name)}</div></label>`;
+  }).join('');
 }
 document.getElementById('tabGlobal').onclick=()=>{currentTab='global';document.getElementById('tabGlobal').classList.add('active');document.getElementById('tabCustom').classList.remove('active');render()};
 document.getElementById('tabCustom').onclick=()=>{currentTab='custom';document.getElementById('tabCustom').classList.add('active');document.getElementById('tabGlobal').classList.remove('active');render()};
@@ -56,7 +64,7 @@ document.getElementById('addEmojiBtn').onclick=()=>{
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML=`<div style="background:#fff;border-radius:20px;padding:20px;width:90%;max-width:380px">
     <h3 style="margin-bottom:12px">➕ 添加表情</h3>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">每行一个，格式：名称 URL</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">表情包名称（空格）url</p>
     <textarea id="batchEmojiInput" rows="6" placeholder="想我了吗 https://i.postimg.cc/xxx.png&#10;等待回复 https://i.postimg.cc/yyy.png&#10;😊" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;font-size:14px;resize:vertical"></textarea>
     <div style="display:flex;gap:10px;margin-top:12px"><button id="batchEmojiOk" style="flex:1;padding:10px;background:#007aff;color:#fff;border:none;border-radius:16px;font-size:14px;cursor:pointer">添加</button><button id="batchEmojiCancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:16px;font-size:14px;cursor:pointer">取消</button></div>
   </div>`;
