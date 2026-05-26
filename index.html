@@ -367,13 +367,26 @@
         return { type: "emoji", value: app ? app.defaultIcon : "📦" };
     }
     
+    function showSaveToast() {
+        var t = document.createElement('div');
+        t.textContent = '已保存';
+        t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#34c759;color:#fff;padding:6px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none';
+        document.body.appendChild(t);
+        setTimeout(function(){ t.remove(); }, 1200);
+    }
     function saveAllData() {
         try {
-            localStorage.setItem(STORAGE_P1, JSON.stringify(page1Icons));
-            localStorage.setItem(STORAGE_P2, JSON.stringify(page2Icons));
-            localStorage.setItem(STORAGE_DOCK, JSON.stringify(dockIcons));
+            var d1 = JSON.stringify(page1Icons);
+            var d2 = JSON.stringify(page2Icons);
+            var d3 = JSON.stringify(dockIcons);
+            localStorage.setItem(STORAGE_P1, d1);
+            localStorage.setItem(STORAGE_P2, d2);
+            localStorage.setItem(STORAGE_DOCK, d3);
+            console.log('已保存', {p1: d1, p2: d2, dock: d3});
+            return true;
         } catch(e) {
-            alert('保存失败，可能存储空间不足');
+            console.error('保存失败', e);
+            return false;
         }
     }
     
@@ -575,7 +588,7 @@
                     newName = newName.trim();
                     if (newName === "") iconData.customName = null;
                     else iconData.customName = newName.slice(0, 12);
-                    saveAllData();
+                    if (saveAllData()) { showSaveToast(); }
                     fullRefreshUI();
                 }
                 return;
@@ -677,7 +690,7 @@
                     newName = newName.trim();
                     if (newName === "") icon.customName = null;
                     else icon.customName = newName.slice(0, 12);
-                    saveAllData();
+                    if (saveAllData()) { showSaveToast(); }
                     fullRefreshUI();
                 }
                 return;
