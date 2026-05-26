@@ -368,9 +368,13 @@
     }
     
     function saveAllData() {
-        localStorage.setItem(STORAGE_P1, JSON.stringify(page1Icons));
-        localStorage.setItem(STORAGE_P2, JSON.stringify(page2Icons));
-        localStorage.setItem(STORAGE_DOCK, JSON.stringify(dockIcons));
+        try {
+            localStorage.setItem(STORAGE_P1, JSON.stringify(page1Icons));
+            localStorage.setItem(STORAGE_P2, JSON.stringify(page2Icons));
+            localStorage.setItem(STORAGE_DOCK, JSON.stringify(dockIcons));
+        } catch(e) {
+            alert('保存失败，可能存储空间不足');
+        }
     }
     
     // ========== 【关键修改】强制使用新配置，忽略旧缓存 ==========
@@ -1035,6 +1039,7 @@
         initSwipe();
         applyThemeSettings();
     }
+    window.addEventListener('beforeunload', saveAllData);
     init();
 </script>
 <script>
