@@ -607,14 +607,44 @@
             </div>
         `).join('');
         
-        // 绑定点击事件 - 跳转到 room.html（同一目录下）
+        // 绑定点击和长按事件
         document.querySelectorAll('#messageListContainer .chat-item').forEach(el => {
+            let pressTimer;
+            const contactId = el.getAttribute('data-contact-id');
             el.addEventListener('click', (e) => {
-                const contactId = el.getAttribute('data-contact-id');
-                // 使用相对路径，跳转到同一目录下的 room.html
                 window.location.href = `room.html?id=${contactId}`;
             });
+            el.addEventListener('touchstart', () => {
+                pressTimer = setTimeout(() => {
+                    if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」及其聊天记录？`)) {
+                        deleteContact(contactId);
+                    }
+                }, 600);
+            });
+            el.addEventListener('touchend', () => clearTimeout(pressTimer));
+            el.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            el.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」及其聊天记录？`)) {
+                    deleteContact(contactId);
+                }
+            });
         });
+    }
+
+    function deleteContact(contactId) {
+        AI_CONTACTS = AI_CONTACTS.filter(c => c.id !== contactId);
+        saveContacts(AI_CONTACTS);
+        delete chatHistory[contactId];
+        localStorage.removeItem(`chat_history_${contactId}`);
+        localStorage.removeItem(`memory_${contactId}`);
+        localStorage.removeItem(`appearance_${contactId}`);
+        localStorage.removeItem(`emoji_${contactId}`);
+        const css = JSON.parse(localStorage.getItem('contacts_custom_settings') || '{}');
+        delete css[contactId];
+        localStorage.setItem('contacts_custom_settings', JSON.stringify(css));
+        renderMessageList();
+        renderContactsList();
     }
     
     // 渲染联系人列表
