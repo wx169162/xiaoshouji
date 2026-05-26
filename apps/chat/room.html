@@ -1126,7 +1126,7 @@
         const sendBtn=document.createElement('button'); sendBtn.className='icon-btn send-btn'; sendBtn.innerHTML='📤';
         buttonGroup.appendChild(aiReplyBtn); buttonGroup.appendChild(sendBtn);
         chatInputBar.appendChild(toggleBtn); chatInputBar.appendChild(emojiBtn); chatInputBar.appendChild(inputField); chatInputBar.appendChild(buttonGroup);
-        inputContainer.appendChild(panelDiv); inputContainer.appendChild(emoWrap); inputContainer.appendChild(chatInputBar); container.appendChild(inputContainer);
+        inputContainer.appendChild(panelDiv); inputContainer.appendChild(chatInputBar); inputContainer.appendChild(emoWrap); container.appendChild(inputContainer);
         bindPanelEvents(panelDiv);
 
         let isEmoOpen=false, emoEditMode=false, myEmojis=[], emoCat='未分类', emoSelected=[];
