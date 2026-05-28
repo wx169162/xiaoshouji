@@ -431,6 +431,18 @@
             background: #f8f8fa;
         }
 
+        /* 美化确认弹窗 */
+        .del-modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px}
+        .del-modal-overlay.open{display:flex}
+        .del-modal{background:#fff;border-radius:24px;width:100%;max-width:320px;padding:28px 24px 20px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+        .del-modal .icon{font-size:40px;margin-bottom:12px}
+        .del-modal h4{font-size:17px;color:#1e293b;margin-bottom:8px}
+        .del-modal .desc{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:20px}
+        .del-modal .btns{display:flex;gap:10px}
+        .del-modal .btns button{flex:1;padding:12px;border:none;border-radius:20px;font-size:15px;cursor:pointer;font-weight:500}
+        .del-modal .btns .cancel{background:#f1f5f9;color:#64748b}
+        .del-modal .btns .confirm-danger{background:#dc2626;color:#fff}
+
         .drawer-close {
             position: absolute;
             top: 12px;
@@ -717,9 +729,8 @@
             };
             wrap.querySelector('[data-action="del"]').onclick = (e) => {
                 e.stopPropagation();
-                if (confirm(`删除联系人「${getContactById(contactId)?.name || contactId}」？`)) {
-                    deleteContact(contactId);
-                }
+                const name = getContactById(contactId)?.name || contactId;
+                showDeleteConfirm(name, () => deleteContact(contactId));
             };
         });
     }
@@ -727,6 +738,16 @@
     function togglePin(contactId) {
         const c = AI_CONTACTS.find(c => c.id === contactId);
         if (c) { c.pinned = !c.pinned; saveContacts(AI_CONTACTS); renderMessageList(); }
+    }
+
+    function showDeleteConfirm(name, action) {
+        const modal = document.getElementById('delModal');
+        document.getElementById('delModalTitle').textContent = `删除「${name}」？`;
+        document.getElementById('delModalDesc').textContent = `删除后「${name}」将从联系人列表中完全消失，所有聊天记录、记忆和设置都将被清除，无法找回。`;
+        document.getElementById('delModalConfirm').onclick = () => { modal.classList.remove('open'); action(); };
+        document.getElementById('delModalCancel').onclick = () => modal.classList.remove('open');
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
+        modal.classList.add('open');
     }
 
     function deleteContact(contactId) {
@@ -907,5 +928,18 @@
 
     init();
 </script>
+
+<!-- 删除确认弹窗 -->
+<div class="del-modal-overlay" id="delModal">
+  <div class="del-modal">
+    <div class="icon">⚠️</div>
+    <h4 id="delModalTitle">删除角色？</h4>
+    <div class="desc" id="delModalDesc">删除后该角色将从联系人列表中完全消失，所有聊天记录、记忆和设置都将被清除，无法找回。</div>
+    <div class="btns">
+      <button class="cancel" id="delModalCancel">取消</button>
+      <button class="confirm-danger" id="delModalConfirm">确定删除</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

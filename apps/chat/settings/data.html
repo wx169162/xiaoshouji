@@ -14,31 +14,73 @@ h1{font-size:22px;font-weight:600}
 .card h3{font-size:16px;margin-bottom:16px;color:#1e293b}
 .btn{padding:12px 20px;border:none;border-radius:24px;font-size:14px;font-weight:500;cursor:pointer;width:100%;text-align:center;display:block}
 .btn-secondary{background:#f1f5f9;color:#1e293b;margin-bottom:10px}
-.btn-danger{background:#fee2e2;color:#dc2626;margin-bottom:10px}
-.btn-delete{background:#dc2626;color:#fff}
+.btn-danger{background:#fee2e2;color:#dc2626}
 .btn:active{transform:scale(.97);opacity:.8}
-.danger-zone{margin-top:20px;padding-top:16px;border-top:1px solid #fee2e2}
-.danger-zone h4{color:#dc2626;margin-bottom:12px}
+.note{font-size:13px;color:#94a3b8;margin-top:10px;padding:10px 14px;background:#f8fafc;border-radius:12px;line-height:1.5}
+
+/* 美化弹窗 */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:24px;width:100%;max-width:320px;padding:28px 24px 20px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+.modal .icon{font-size:40px;margin-bottom:12px}
+.modal h4{font-size:17px;color:#1e293b;margin-bottom:8px}
+.modal .desc{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:20px}
+.modal .btns{display:flex;gap:10px}
+.modal .btns button{flex:1;padding:12px;border:none;border-radius:20px;font-size:15px;cursor:pointer;font-weight:500}
+.modal .btns .cancel{background:#f1f5f9;color:#64748b}
+.modal .btns .confirm-danger{background:#dc2626;color:#fff}
+.modal .btns .confirm{background:#007aff;color:#fff}
 </style>
 </head>
 <body>
 <div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>⚙️ 数据操作</h1></div>
+
 <div class="card"><h3>📦 聊天记录</h3>
   <button class="btn btn-secondary" id="importBtn">📥 导入聊天记录</button>
   <button class="btn btn-secondary" id="exportBtn">📤 导出聊天记录</button>
   <button class="btn btn-danger" id="clearBtn">🗑️ 清空聊天记录</button>
+  <div class="note">📌 清空聊天记录不会影响角色的总结和记忆</div>
 </div>
-<div class="card danger-zone"><h4>💀 危险操作</h4>
-  <p style="font-size:13px;color:#64748b;margin-bottom:16px">删除后所有数据将永久丢失</p>
-  <button class="btn btn-delete" id="deleteBtn">删除角色及所有数据</button>
+
+<div class="card"><h3>🔄 重置角色</h3>
+  <p style="font-size:13px;color:#64748b;margin-bottom:16px">角色会保留在联系人列表中，但所有数据将被清空——回到刚加好友时的状态。</p>
+  <button class="btn btn-danger" id="resetBtn">🗑️ 清空角色数据</button>
+  <div class="note">📌 将清除：聊天记录 / 记忆总结 / 外观设置 / 表情包 / 自定义人设</div>
 </div>
+
+<!-- 美化弹窗 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="icon">🗑️</div>
+    <h4 id="modalTitle">清空聊天记录？</h4>
+    <div class="desc" id="modalDesc">将清空与当前角色的所有聊天记录，但角色的自动总结和长期记忆会被保留。</div>
+    <div class="btns">
+      <button class="cancel" id="modalCancel">取消</button>
+      <button class="confirm" id="modalConfirm">确定清空</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const p=new URLSearchParams(window.location.search),contactId=p.get('id');
-function delRole(id){const s=JSON.parse(localStorage.getItem('contacts_custom_settings')||'{}');delete s[id];localStorage.setItem('contacts_custom_settings',JSON.stringify(s));['chat_history_','memory_','appearance_'].forEach(k=>localStorage.removeItem(k+id));}
+
+// 美化弹窗
+function showConfirm(title, desc, confirmText, confirmClass, action) {
+  const modal = document.getElementById('modal');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalDesc').textContent = desc;
+  const confirmBtn = document.getElementById('modalConfirm');
+  confirmBtn.textContent = confirmText;
+  confirmBtn.className = confirmClass || 'confirm';
+  confirmBtn.onclick = () => { modal.classList.remove('open'); action(); };
+  document.getElementById('modalCancel').onclick = () => modal.classList.remove('open');
+  modal.classList.add('open');
+}
+
 document.getElementById('exportBtn').onclick=()=>{const d=localStorage.getItem('chat_history_'+contactId)||'[]',b=new Blob([d],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='chat_'+contactId+'.json';a.click()};
-document.getElementById('importBtn').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(confirm('导入将覆盖当前聊天记录，确定吗？')){localStorage.setItem('chat_history_'+contactId,JSON.stringify(d));alert('已导入')}}catch(e){alert('文件格式错误')}};r.readAsText(f)};i.click()};
-document.getElementById('clearBtn').onclick=()=>{if(confirm('清空所有聊天记录？')){localStorage.setItem('chat_history_'+contactId,'[]');alert('已清空')}};
-document.getElementById('deleteBtn').onclick=()=>{if(confirm('彻底删除此角色？不可恢复！')){delRole(contactId);alert('已删除');window.location.href='../index.html'}};
+document.getElementById('importBtn').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);showConfirm('导入聊天记录？','导入将覆盖当前所有聊天记录。角色的总结和记忆不受影响。','确定导入','confirm',()=>{localStorage.setItem('chat_history_'+contactId,JSON.stringify(d));alert('已导入')})}catch(e){alert('文件格式错误')}};r.readAsText(f)};i.click()};
+document.getElementById('clearBtn').onclick=()=>{showConfirm('清空聊天记录？','将清空与当前角色的所有聊天记录，但角色的自动总结和长期记忆会被保留。','确定清空','confirm-danger',()=>{localStorage.setItem('chat_history_'+contactId,'[]');alert('已清空')})};
+document.getElementById('resetBtn').onclick=()=>{showConfirm('清空角色所有数据？','角色「'+contactId+'」不会被删除，但聊天记录、记忆总结、外观设置、表情包、自定义人设等全部数据将被清空，回到刚加好友时的状态。此操作不可恢复。','确定清空','confirm-danger',()=>{['chat_history_','memory_','appearance_','emoji_'].forEach(k=>localStorage.removeItem(k+contactId));const s=JSON.parse(localStorage.getItem('contacts_custom_settings')||'{}');delete s[contactId];localStorage.setItem('contacts_custom_settings',JSON.stringify(s));alert('角色数据已清空')})};
 </script>
 </body>
 </html>

@@ -128,6 +128,7 @@
             flex-direction: column;
             position: relative;
             transition: background 0.1s;
+            -webkit-touch-callout: none;
         }
         
         .message-wrapper.multi-select-mode {
@@ -765,7 +766,7 @@
     function getDisplayName() { if (!currentContact) return ''; const settings = getContactSettings(currentContact.id); if (settings.nickname && settings.nickname.trim()) return settings.nickname.trim(); if (settings.realName && settings.realName.trim()) return settings.realName.trim(); return currentContact.name; }
     function loadContactsSettings() { const saved = localStorage.getItem('contacts_custom_settings'); if (saved) { try { contactsSettings = JSON.parse(saved); } catch(e) {} } if (!contactsSettings) contactsSettings = {}; }
     function saveContactsSettings() { localStorage.setItem('contacts_custom_settings', JSON.stringify(contactsSettings)); }
-    function getContactSettings(contactId) { if (!contactsSettings[contactId]) { contactsSettings[contactId] = { roleAvatar: '🤖', myAvatar: '😀', realName: '', nickname: '', callPrefer: '', rolePersona: '', userPersona: '', worldBook: 'default', isBlocked: false }; saveContactsSettings(); } return contactsSettings[contactId]; }
+    function getContactSettings(contactId) { if (!contactsSettings[contactId]) { contactsSettings[contactId] = { roleAvatar: '🤖', myAvatar: '😀', realName: '', nickname: '', callPrefer: '', rolePersona: '', userPersona: '', styleInstruction: '', worldBook: 'default', isBlocked: false }; saveContactsSettings(); } return contactsSettings[contactId]; }
     function loadPersonaSettings() { const saved = localStorage.getItem('persona_settings'); if (saved) { try { personaSettings = JSON.parse(saved); } catch(e) {} } }
     function getCurrentPersonaId() { return personaSettings[currentContact?.id] || 'default'; }
     function getCurrentPersona() { return PERSONA_LIST.find(p => p.id === getCurrentPersonaId()) || PERSONA_LIST[0]; }
