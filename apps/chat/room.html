@@ -658,10 +658,31 @@
             background: rgba(0,0,0,0.4);
             backdrop-filter: blur(4px);
             z-index: 1001;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
         }
+        .modal-overlay.open { display: flex; }
+        .confirm-modal {
+            background: #fff;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 300px;
+            padding: 28px 24px 20px;
+            text-align: center;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+        }
+        .confirm-modal .icon { font-size: 40px; margin-bottom: 12px; }
+        .confirm-modal h4 { font-size: 17px; color: #1c1c1e; margin-bottom: 8px; }
+        .confirm-modal .desc { font-size: 14px; color: #8e8e93; line-height: 1.6; margin-bottom: 20px; }
+        .confirm-modal .btns { display: flex; gap: 10px; }
+        .confirm-modal .btns button {
+            flex: 1; padding: 12px; border: none; border-radius: 20px;
+            font-size: 15px; cursor: pointer; font-weight: 500;
+        }
+        .confirm-modal .btns .btn-cancel { background: #f2f2f6; color: #8e8e93; }
+        .confirm-modal .btns .btn-danger { background: #ff3b30; color: #fff; }
+        .confirm-modal .btns .btn-confirm { background: #007aff; color: #fff; }
         
         .edit-modal {
             background: white;
@@ -721,6 +742,19 @@
 <body>
 <div class="chat-app" id="chatApp">
     <div class="chat-window" id="chatWindow"></div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="confirm-modal">
+        <div class="icon" id="confirmIcon">🗑️</div>
+        <h4 id="confirmTitle">删除消息？</h4>
+        <div class="desc" id="confirmDesc">确定要删除这条消息吗？</div>
+        <div class="btns">
+            <button class="btn-cancel" id="confirmCancel">取消</button>
+            <button class="btn-danger" id="confirmOk">删除</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -929,17 +963,28 @@
     }
     
     // 6. 多选功能完善
+    function showConfirmModal(title, desc, icon, btnClass, btnText, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('confirmIcon').textContent = icon || '🗑️';
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmDesc').textContent = desc;
+        const okBtn = document.getElementById('confirmOk');
+        okBtn.className = btnClass || 'btn-danger';
+        okBtn.textContent = btnText || '删除';
+        okBtn.onclick = () => { modal.classList.remove('open'); onConfirm(); };
+        document.getElementById('confirmCancel').onclick = () => modal.classList.remove('open');
+        modal.classList.add('open');
+    }
     function enterMultiSelectMode() { isMultiSelectMode = true; selectedMsgIds.clear(); renderChatWindow(); }
     function exitMultiSelectMode() { isMultiSelectMode = false; selectedMsgIds.clear(); renderChatWindow(); const bar = document.querySelector('.multi-action-bar'); if(bar) bar.remove(); }
-    function batchDelete() { 
-        if (selectedMsgIds.size === 0) return; 
-        if (confirm(`确定删除 ${selectedMsgIds.size} 条消息吗？`)) {
-            chatHistory[currentContact.id] = chatHistory[currentContact.id].filter(m => !selectedMsgIds.has(m.id)); 
-            saveChatsToLocal(); 
-            exitMultiSelectMode(); 
-            renderChatWindow(); 
-            alert(`已删除 ${selectedMsgIds.size} 条消息`);
-        }
+    function batchDelete() {
+        if (selectedMsgIds.size === 0) return;
+        showConfirmModal('批量删除？', `确定删除 ${selectedMsgIds.size} 条消息吗？`, '🗑️', 'btn-danger', '删除', () => {
+            chatHistory[currentContact.id] = chatHistory[currentContact.id].filter(m => !selectedMsgIds.has(m.id));
+            saveChatsToLocal();
+            exitMultiSelectMode();
+            renderChatWindow();
+        });
     }
     function batchFavorite() { 
         const msgs = chatHistory[currentContact.id].filter(m => selectedMsgIds.has(m.id)); 
@@ -1033,7 +1078,7 @@
         setTimeout(() => document.addEventListener('click', closeHandler), 50);
     }
     
-    function deleteMessageById(msgId) { if (!chatHistory[currentContact.id]) return; chatHistory[currentContact.id] = chatHistory[currentContact.id].filter(m => m.id != msgId); saveChatsToLocal(); renderChatWindow(); }
+    function deleteMessageById(msgId) { if (!chatHistory[currentContact.id]) return; showConfirmModal('删除消息？', '确定要删除这条消息吗？', '🗑️', 'btn-danger', '删除', () => { chatHistory[currentContact.id] = chatHistory[currentContact.id].filter(m => m.id != msgId); saveChatsToLocal(); renderChatWindow(); }); }
     
     function attachLongPressMenu() {
         const wrappers = document.querySelectorAll('.message-wrapper');
