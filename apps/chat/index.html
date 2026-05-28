@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>消息 - AI聊天</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -479,9 +480,9 @@
             <div class="online-status">● 在线</div>
         </div>
         <div class="drawer-menu">
-            <div class="menu-item" data-action="profile">📋 我的资料</div>
-            <div class="menu-item" data-action="favorites">⭐ 收藏</div>
-            <div class="menu-item" data-action="settings">⚙️ 设置</div>
+            <div class="menu-item" data-action="profile"><i class="fas fa-id-card"></i> 我的资料</div>
+            <div class="menu-item" data-action="favorites"><i class="far fa-star"></i> 收藏</div>
+            <div class="menu-item" data-action="settings"><i class="fas fa-sliders-h"></i> 设置</div>
             <div class="menu-item" data-action="logout">🚪 退出登录</div>
         </div>
     </div>
@@ -523,7 +524,7 @@
 
         <div class="bottom-nav">
             <div class="nav-item active" data-nav="messages"><div class="nav-icon">💬</div><div class="nav-label">消息</div></div>
-            <div class="nav-item" data-nav="contacts"><div class="nav-icon">👤</div><div class="nav-label">联系人</div></div>
+            <div class="nav-item" data-nav="contacts"><div class="nav-icon"><i class="fas fa-address-book"></i></div><div class="nav-label">联系人</div></div>
             <div class="nav-item" data-nav="moments"><div class="nav-icon">🌟</div><div class="nav-label">动态</div></div>
         </div>
     </div>
@@ -656,8 +657,8 @@
         container.innerHTML = messageItems.map(item => `
             <div class="chat-swipe-wrap" data-contact-id="${item.id}">
                 <div class="chat-actions">
-                    <button class="chat-action-btn pin" data-action="pin" data-id="${item.id}">📌<span>置顶</span></button>
-                    <button class="chat-action-btn del" data-action="del" data-id="${item.id}">🗑️<span>删除</span></button>
+                    <button class="chat-action-btn pin" data-action="pin" data-id="${item.id}"><i class="fas fa-thumbtack"></i><span>置顶</span></button>
+                    <button class="chat-action-btn del" data-action="del" data-id="${item.id}"><i class="fas fa-trash-alt"></i><span>删除</span></button>
                 </div>
                 <div class="chat-item${item.pinned ? ' pinned' : ''}" data-contact-id="${item.id}">
                     ${renderAvatarHtml(item.id, item.avatar)}
@@ -847,7 +848,7 @@
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
         overlay.innerHTML = `<div style="background:#fff;border-radius:24px;padding:28px 24px;width:90%;max-width:340px;text-align:center">
-            <h3 style="margin-bottom:20px;font-size:18px">➕ 加好友</h3>
+            <h3 style="margin-bottom:20px;font-size:18px"><i class="fas fa-user-plus" style="margin-right:6px"></i>加好友</h3>
             <div style="display:flex;justify-content:center;margin-bottom:20px">
                 <div id="newAvatarPreview" style="width:80px;height:80px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;overflow:hidden;background-size:cover;background-position:center;border:2px solid #e2e8f0">🤖</div>
             </div>
@@ -932,7 +933,7 @@
 <!-- 删除确认弹窗 -->
 <div class="del-modal-overlay" id="delModal">
   <div class="del-modal">
-    <div class="icon">⚠️</div>
+    <div class="icon"><i class="fas fa-exclamation-triangle" style="font-size:40px;color:#ff9500"></i></div>
     <h4 id="delModalTitle">删除角色？</h4>
     <div class="desc" id="delModalDesc">删除后该角色将从联系人列表中完全消失，所有聊天记录、记忆和设置都将被清除，无法找回。</div>
     <div class="btns">

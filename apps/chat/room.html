@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>聊天 - AI助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -1009,7 +1010,7 @@
     const STORAGE_TAB_KEY = 'room_panel_tab';
     function loadLastTab() { const saved = localStorage.getItem(STORAGE_TAB_KEY); if (saved && ['常用','见面','互动','扩展'].includes(saved)) currentTab = saved; else currentTab = '常用'; }
     function saveCurrentTab(tabName) { currentTab = tabName; localStorage.setItem(STORAGE_TAB_KEY, tabName); }
-    function renderFuncPanel() { return `<div class="panel-tabs"><button class="tab-item active" data-tab="常用">常用</button><button class="tab-item" data-tab="见面">见面</button><button class="tab-item" data-tab="互动">互动</button><button class="tab-item" data-tab="扩展">扩展</button></div><div class="tab-content"><div class="tab-pane active-pane" data-pane="常用"><div class="buttons-grid"><button class="action-btn" data-action="regenerate">🔄 重说</button></div></div></div>`; }
+    function renderFuncPanel() { return `<div class="panel-tabs"><button class="tab-item active" data-tab="常用">常用</button><button class="tab-item" data-tab="见面">见面</button><button class="tab-item" data-tab="互动">互动</button><button class="tab-item" data-tab="扩展">扩展</button></div><div class="tab-content"><div class="tab-pane active-pane" data-pane="常用"><div class="buttons-grid"><button class="action-btn" data-action="regenerate"><i class="fas fa-redo-alt"></i> 重说</button></div></div></div>`; }
     function bindPanelEvents(panelElement) { const btn = panelElement?.querySelector('[data-action="regenerate"]'); if(btn) btn.onclick = () => regenerateLastAiMessage(); }
     function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>"']/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; if(m==='"') return '&quot;'; if(m==='\'') return '&#39;'; return m;}); }
     
@@ -1027,24 +1028,24 @@
         let menuItems = [];
         if (isUser) {
             menuItems = [
-                { emoji: '❤️', text: '收藏', action: () => addFavorite(msg) },
-                { emoji: '📤', text: '引用', action: () => { currentQuoteMsg = msg; renderChatWindow(); } },
-                { emoji: '📋', text: '复制', action: () => { navigator.clipboard.writeText(msg.content); alert('✓ 已复制'); } },
-                { emoji: '✏️', text: '编辑', action: () => { const newText = prompt('编辑消息', msg.content); if(newText && newText.trim()) editMessage(msg, newText); } },
-                { emoji: '📤', text: '转发', action: () => showContactSelector(msg, false, null) },
-                { emoji: '⏪', text: '撤回', action: () => recallMessage(msg) },
-                { emoji: '🗑️', text: '删除', action: () => deleteMessageById(msg.id), danger: true },
-                { emoji: '✅', text: '多选', action: () => enterMultiSelectMode() }
+                { emoji: '<i class="far fa-star"></i>', text: '收藏', action: () => addFavorite(msg) },
+                { emoji: '<i class="fas fa-reply"></i>', text: '引用', action: () => { currentQuoteMsg = msg; renderChatWindow(); } },
+                { emoji: '<i class="far fa-copy"></i>', text: '复制', action: () => { navigator.clipboard.writeText(msg.content); alert('✓ 已复制'); } },
+                { emoji: '<i class="fas fa-pen"></i>', text: '编辑', action: () => { const newText = prompt('编辑消息', msg.content); if(newText && newText.trim()) editMessage(msg, newText); } },
+                { emoji: '<i class="fas fa-location-arrow"></i>', text: '转发', action: () => showContactSelector(msg, false, null) },
+                { emoji: '<i class="fas fa-undo-alt"></i>', text: '撤回', action: () => recallMessage(msg) },
+                { emoji: '<i class="fas fa-trash-alt"></i>', text: '删除', action: () => deleteMessageById(msg.id), danger: true },
+                { emoji: '<i class="fas fa-check-circle"></i>', text: '多选', action: () => enterMultiSelectMode() }
             ];
         } else {
             menuItems = [
-                { emoji: '❤️', text: '收藏', action: () => addFavorite(msg) },
-                { emoji: '📤', text: '引用', action: () => { currentQuoteMsg = msg; renderChatWindow(); } },
-                { emoji: '📋', text: '复制', action: () => { navigator.clipboard.writeText(msg.content); alert('✓ 已复制'); } },
-                { emoji: '📤', text: '转发', action: () => showContactSelector(msg, false, null) },
-                { emoji: '🔄', text: '重新回复', action: () => regenerateAiMessage(msg) },
-                { emoji: '🗑️', text: '删除', action: () => deleteMessageById(msg.id), danger: true },
-                { emoji: '✅', text: '多选', action: () => enterMultiSelectMode() }
+                { emoji: '<i class="far fa-star"></i>', text: '收藏', action: () => addFavorite(msg) },
+                { emoji: '<i class="fas fa-reply"></i>', text: '引用', action: () => { currentQuoteMsg = msg; renderChatWindow(); } },
+                { emoji: '<i class="far fa-copy"></i>', text: '复制', action: () => { navigator.clipboard.writeText(msg.content); alert('✓ 已复制'); } },
+                { emoji: '<i class="fas fa-location-arrow"></i>', text: '转发', action: () => showContactSelector(msg, false, null) },
+                { emoji: '<i class="fas fa-redo-alt"></i>', text: '重新回复', action: () => regenerateAiMessage(msg) },
+                { emoji: '<i class="fas fa-trash-alt"></i>', text: '删除', action: () => deleteMessageById(msg.id), danger: true },
+                { emoji: '<i class="fas fa-check-circle"></i>', text: '多选', action: () => enterMultiSelectMode() }
             ];
         }
         const menuDiv = document.createElement('div'); 
@@ -1098,7 +1099,7 @@
         });
         let bar = document.querySelector('.multi-action-bar');
         if (!bar) { bar = document.createElement('div'); bar.className = 'multi-action-bar'; document.body.appendChild(bar); }
-        bar.innerHTML = `<button class="multi-btn" id="multiFav">⭐ 收藏</button><button class="multi-btn" id="multiDel">🗑️ 删除</button><button class="multi-btn" id="multiForward">📤 转发</button><button class="multi-btn cancel" id="multiCancel">取消</button>`;
+        bar.innerHTML = `<button class="multi-btn" id="multiFav"><i class="far fa-star"></i> 收藏</button><button class="multi-btn" id="multiDel"><i class="fas fa-trash-alt"></i> 删除</button><button class="multi-btn" id="multiForward"><i class="fas fa-location-arrow"></i> 转发</button><button class="multi-btn cancel" id="multiCancel">取消</button>`;
         bar.classList.add('show');
         document.getElementById('multiFav')?.addEventListener('click', batchFavorite);
         document.getElementById('multiDel')?.addEventListener('click', batchDelete);
@@ -1150,9 +1151,9 @@
             const checkboxHtml = isMultiSelectMode ? `<div class="multi-checkbox ${selectedMsgIds.has(msg.id) ? 'selected' : ''}" data-id="${msg.id}"></div>` : '';
             messagesHtml += `<div class="message-wrapper ${isMultiSelectMode ? 'multi-select-mode' : ''}" data-msg-id="${msg.id}">${checkboxHtml}${contentDiv}</div>`;
         });
-        if (messages.length === 0) messagesHtml = '<div class="empty-chat">✨ 开始聊天吧~</div>';
-        const quoteHtml = currentQuoteMsg ? `<div class="quote-bar">💬 正在引用: ${escapeHtml(currentQuoteMsg.content.substring(0, 35))}${currentQuoteMsg.content.length > 35 ? '...' : ''}<span class="quote-cancel" id="cancelQuote">取消</span></div>` : '';
-        const chatHTML = `<div class="chat-header"><div class="chat-back-btn" id="chatBackBtn">←</div><div class="chat-name">${escapeHtml(displayName)}<span class="heart-icon" id="heartIcon">❤️</span></div><button class="settings-btn" id="settingsBtn">⚙️</button></div><div class="messages-area" id="messagesArea">${messagesHtml}</div>${quoteHtml}`;
+        if (messages.length === 0) messagesHtml = '<div class="empty-chat"><i class="far fa-comment-dots" style="font-size:18px;display:block;margin-bottom:8px"></i>开始聊天吧~</div>';
+        const quoteHtml = currentQuoteMsg ? `<div class="quote-bar"><i class="fas fa-reply" style="margin-right:6px"></i> 正在引用: ${escapeHtml(currentQuoteMsg.content.substring(0, 35))}${currentQuoteMsg.content.length > 35 ? '...' : ''}<span class="quote-cancel" id="cancelQuote">取消</span></div>` : '';
+        const chatHTML = `<div class="chat-header"><div class="chat-back-btn" id="chatBackBtn"><i class="fas fa-chevron-left"></i></div><div class="chat-name">${escapeHtml(displayName)}<span class="heart-icon" id="heartIcon"><i class="far fa-heart"></i></span></div><button class="settings-btn" id="settingsBtn"><i class="fas fa-sliders-h"></i></button></div><div class="messages-area" id="messagesArea">${messagesHtml}</div>${quoteHtml}`;
         const container = document.getElementById('chatWindow');
         container.innerHTML = chatHTML;
         document.getElementById('chatBackBtn')?.addEventListener('click', () => { window.location.href = 'index.html'; });
@@ -1178,15 +1179,15 @@
         const emoCatBar=document.createElement('div'); emoCatBar.className='emo-cat-bar'; emoCatBar.id='emoCatBar';
         const emoGrid=document.createElement('div'); emoGrid.className='emo-grid-my'; emoGrid.id='emoGridMy';
         const emoActions=document.createElement('div'); emoActions.className='emo-actions';
-        emoActions.innerHTML='<button id="emoAddBtn" class="emo-act-btn">➕ 添加</button><button id="emoEditBtn" class="emo-act-btn">☑️ 编辑</button><button id="emoCatAddBtn" class="emo-act-btn">📁 新分类</button><button id="emoDelBtn" class="emo-act-btn" style="display:none;color:#dc2626">🗑️ 删除选中</button><button id="emoMoveBtn" class="emo-act-btn" style="display:none">📂 移动到</button>';
+        emoActions.innerHTML='<button id="emoAddBtn" class="emo-act-btn"><i class="fas fa-plus" style="font-size:12px"></i> 添加</button><button id="emoEditBtn" class="emo-act-btn"><i class="fas fa-check" style="font-size:12px"></i> 编辑</button><button id="emoCatAddBtn" class="emo-act-btn"><i class="fas fa-folder" style="font-size:12px"></i> 新分类</button><button id="emoDelBtn" class="emo-act-btn" style="display:none;color:#dc2626"><i class="fas fa-trash-alt" style="font-size:12px"></i> 删除选中</button><button id="emoMoveBtn" class="emo-act-btn" style="display:none"><i class="fas fa-folder-open" style="font-size:12px"></i> 移动到</button>';
         emoWrap.appendChild(emoCatBar); emoWrap.appendChild(emoGrid); emoWrap.appendChild(emoActions);
         const chatInputBar=document.createElement('div'); chatInputBar.className='chat-input-bar';
-        const toggleBtn=document.createElement('button'); toggleBtn.className='panel-toggle-btn'; toggleBtn.textContent=isPanelOpen?'✖':'➕';
-        const emojiBtn=document.createElement('button'); emojiBtn.className='icon-btn'; emojiBtn.id='emojiToggleBtn'; emojiBtn.innerHTML='😊';
+        const toggleBtn=document.createElement('button'); toggleBtn.className='panel-toggle-btn'; toggleBtn.innerHTML=isPanelOpen?'<i class="fas fa-xmark"></i>':'<i class="fas fa-plus"></i>';
+        const emojiBtn=document.createElement('button'); emojiBtn.className='icon-btn'; emojiBtn.id='emojiToggleBtn'; emojiBtn.innerHTML='<i class="far fa-face-smile"></i>';
         const inputField=document.createElement('input'); inputField.type='text'; inputField.className='chat-input'; inputField.id='chatInput'; inputField.placeholder='输入消息...';
         const buttonGroup=document.createElement('div'); buttonGroup.className='button-group';
-        const aiReplyBtn=document.createElement('button'); aiReplyBtn.className='icon-btn ai-btn'; aiReplyBtn.innerHTML='🤖';
-        const sendBtn=document.createElement('button'); sendBtn.className='icon-btn send-btn'; sendBtn.innerHTML='📤';
+        const aiReplyBtn=document.createElement('button'); aiReplyBtn.className='icon-btn ai-btn'; aiReplyBtn.innerHTML='<i class="fas fa-robot"></i>';
+        const sendBtn=document.createElement('button'); sendBtn.className='icon-btn send-btn'; sendBtn.innerHTML='<i class="fas fa-paper-plane"></i>';
         buttonGroup.appendChild(aiReplyBtn); buttonGroup.appendChild(sendBtn);
         chatInputBar.appendChild(toggleBtn); chatInputBar.appendChild(emojiBtn); chatInputBar.appendChild(inputField); chatInputBar.appendChild(buttonGroup);
         inputContainer.appendChild(panelDiv); inputContainer.appendChild(chatInputBar); inputContainer.appendChild(emoWrap); container.appendChild(inputContainer);
@@ -1238,7 +1239,7 @@
         };
         document.getElementById('emoAddBtn').onclick=()=>{
             const ov=document.createElement('div');ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center';
-            ov.innerHTML=`<div style="background:#fff;border-radius:20px;padding:20px;width:90%;max-width:380px"><h3 style="margin-bottom:8px">➕ 添加表情</h3><p style="font-size:11px;color:#94a3b8;margin-bottom:8px">每行一个：名称（空格）url</p><textarea id="emoBatchInput" rows="5" placeholder="坏狗狗 https://i.postimg.cc/xxx.png" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;font-size:14px;resize:vertical"></textarea><div style="display:flex;gap:10px;margin-top:12px"><button id="emoBatchOk" style="flex:1;padding:10px;background:#007aff;color:#fff;border:none;border-radius:16px;font-size:14px;cursor:pointer">添加</button><button id="emoBatchCancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:16px;font-size:14px;cursor:pointer">取消</button></div></div>`;
+            ov.innerHTML=`<div style="background:#fff;border-radius:20px;padding:20px;width:90%;max-width:380px"><h3 style="margin-bottom:8px"><i class="fas fa-plus" style="margin-right:6px"></i>添加表情</h3><p style="font-size:11px;color:#94a3b8;margin-bottom:8px">每行一个：名称（空格）url</p><textarea id="emoBatchInput" rows="5" placeholder="坏狗狗 https://i.postimg.cc/xxx.png" style="width:100%;padding:10px;border-radius:12px;border:1px solid #e2e8f0;font-size:14px;resize:vertical"></textarea><div style="display:flex;gap:10px;margin-top:12px"><button id="emoBatchOk" style="flex:1;padding:10px;background:#007aff;color:#fff;border:none;border-radius:16px;font-size:14px;cursor:pointer">添加</button><button id="emoBatchCancel" style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:16px;font-size:14px;cursor:pointer">取消</button></div></div>`;
             document.body.appendChild(ov);
             document.getElementById('emoBatchCancel').onclick=()=>ov.remove();
             document.getElementById('emoBatchOk').onclick=()=>{
@@ -1257,7 +1258,7 @@
         inputField.addEventListener('focus', handleInputFocus);
         inputField.addEventListener('click', handleInputFocus);
 
-        toggleBtn.onclick=()=>{ isPanelOpen=!isPanelOpen; isEmoOpen=false; renderEmoPanel(); panelDiv.classList.toggle('open',isPanelOpen); toggleBtn.textContent=isPanelOpen?'✖':'➕'; };
+        toggleBtn.onclick=()=>{ isPanelOpen=!isPanelOpen; isEmoOpen=false; renderEmoPanel(); panelDiv.classList.toggle('open',isPanelOpen); toggleBtn.innerHTML=isPanelOpen?'<i class="fas fa-xmark"></i>':'<i class="fas fa-plus"></i>'; };
         sendBtn.onclick=()=>{ const text=inputField.value.trim(); if(!text) return; inputField.value=''; if(isLoading){ interruptAndSendNewMessage(text); } else { sendUserMessageOnly(text); } forceScrollToBottom(); };
         aiReplyBtn.onclick=async()=>{ if(isLoading){ if(confirm('AI正在回复中，是否中断并重新请求？')) { if(currentAbortController) currentAbortController.abort(); isLoading=false; renderChatWindow(); await requestAIReply(); } } else { await requestAIReply(); } forceScrollToBottom(); };
         inputField.onkeypress=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendBtn.click(); } }; 

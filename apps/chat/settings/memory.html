@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>记忆与上下文</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,sans-serif;background:#f5f7fb;padding:16px;min-height:100vh}
@@ -31,30 +32,30 @@ select{flex:1}
 </style>
 </head>
 <body>
-<div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>🧠 记忆与上下文</h1></div>
+<div class="header"><button class="back-btn" onclick="history.back()"><i class="fas fa-chevron-left"></i> 返回</button><h1><i class="fas fa-brain"></i> 记忆与上下文</h1></div>
 
 <div class="card">
-  <h3>📌 长期记忆总结</h3>
+  <h3><i class="fas fa-thumbtack"></i> 长期记忆总结</h3>
   <div class="row"><label>模式</label><select id="summarizeMode"><option value="auto">自动总结</option><option value="manual">手动</option></select></div>
   <div class="row"><label>触发条数</label><input type="number" id="triggerCount" value="50" min="5"><span style="font-size:12px;color:#94a3b8">消息达到此数量后自动总结</span></div>
   <h3>总结提示词</h3>
   <textarea id="summaryPrompt" rows="2" placeholder="留空使用默认：请将以下对话总结为简短摘要..."></textarea>
-  <button class="btn btn-primary" id="forceSummarizeBtn">✨ 立即总结</button>
+  <button class="btn btn-primary" id="forceSummarizeBtn"><i class="fas fa-sparkles"></i> 立即总结</button>
 
-  <div class="section"><h3>已有总结</h3><button class="btn btn-danger btn-sm" id="batchDeleteBtn">🗑️ 清空</button></div>
+  <div class="section"><h3>已有总结</h3><button class="btn btn-danger btn-sm" id="batchDeleteBtn"><i class="fas fa-trash-alt"></i> 清空</button></div>
   <div id="summaryList"></div>
-  <button class="btn btn-sm" id="aiSimplifyBtn" style="width:100%;margin-top:8px">✨ AI精简合并所有总结</button>
+  <button class="btn btn-sm" id="aiSimplifyBtn" style="width:100%;margin-top:8px"><i class="fas fa-sparkles"></i> AI精简合并所有总结</button>
 </div>
 
 <div class="card">
-  <h3>💬 上下文控制</h3>
+  <h3><i class="fas fa-comment-dots"></i> 上下文控制</h3>
   <div class="row"><label>记忆条数</label><input type="number" id="contextTokens" value="20" min="0"><span style="font-size:12px;color:#94a3b8">发送给AI的历史消息数</span></div>
   <div class="row"><span>回复区间</span><input type="number" id="replyMin" value="1" min="1"> ~ <input type="number" id="replyMax" value="3" min="1"></div>
-  <div class="row" style="font-size:13px;color:#475569"><span>💬 总消息: <b id="totalMsgs">0</b></span><span>📊 Token: ~<b id="totalTokens">0</b></span></div>
+  <div class="row" style="font-size:13px;color:#475569"><span><i class="far fa-comment-dots"></i> 总消息: <b id="totalMsgs">0</b></span><span><i class="fas fa-chart-bar"></i> Token: ~<b id="totalTokens">0</b></span></div>
 </div>
 
 <div class="card">
-  <h3>🔗 记忆互通</h3>
+  <h3><i class="fas fa-link"></i> 记忆互通</h3>
   <div class="row"><span>允许与</span><select id="shareWith"><option value="">无</option></select><span>共享记忆</span></div>
 </div>
 

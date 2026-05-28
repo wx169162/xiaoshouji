@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>数据操作</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,sans-serif;background:#f5f7fb;padding:16px;min-height:100vh}
@@ -33,25 +34,25 @@ h1{font-size:22px;font-weight:600}
 </style>
 </head>
 <body>
-<div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>⚙️ 数据操作</h1></div>
+<div class="header"><button class="back-btn" onclick="history.back()"><i class="fas fa-chevron-left"></i> 返回</button><h1><i class="fas fa-database"></i> 数据操作</h1></div>
 
-<div class="card"><h3>📦 聊天记录</h3>
-  <button class="btn btn-secondary" id="importBtn">📥 导入聊天记录</button>
-  <button class="btn btn-secondary" id="exportBtn">📤 导出聊天记录</button>
-  <button class="btn btn-danger" id="clearBtn">🗑️ 清空聊天记录</button>
-  <div class="note">📌 清空聊天记录不会影响角色的总结和记忆</div>
+<div class="card"><h3><i class="fas fa-comments"></i> 聊天记录</h3>
+  <button class="btn btn-secondary" id="importBtn"><i class="fas fa-file-import"></i> 导入聊天记录</button>
+  <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-file-export"></i> 导出聊天记录</button>
+  <button class="btn btn-danger" id="clearBtn"><i class="fas fa-trash-alt"></i> 清空聊天记录</button>
+  <div class="note"><i class="fas fa-info-circle"></i> 清空聊天记录不会影响角色的总结和记忆</div>
 </div>
 
-<div class="card"><h3>🔄 重置角色</h3>
+<div class="card"><h3><i class="fas fa-undo-alt"></i> 重置角色</h3>
   <p style="font-size:13px;color:#64748b;margin-bottom:16px">角色会保留在联系人列表中，但所有数据将被清空——回到刚加好友时的状态。</p>
-  <button class="btn btn-danger" id="resetBtn">🗑️ 清空角色数据</button>
-  <div class="note">📌 将清除：聊天记录 / 记忆总结 / 外观设置 / 表情包 / 自定义人设</div>
+  <button class="btn btn-danger" id="resetBtn"><i class="fas fa-trash-alt"></i> 清空角色数据</button>
+  <div class="note"><i class="fas fa-info-circle"></i> 将清除：聊天记录 / 记忆总结 / 外观设置 / 表情包 / 自定义人设</div>
 </div>
 
 <!-- 美化弹窗 -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <div class="icon">🗑️</div>
+    <div class="icon"><i class="fas fa-trash-alt" style="font-size:40px;color:#dc2626"></i></div>
     <h4 id="modalTitle">清空聊天记录？</h4>
     <div class="desc" id="modalDesc">将清空与当前角色的所有聊天记录，但角色的自动总结和长期记忆会被保留。</div>
     <div class="btns">

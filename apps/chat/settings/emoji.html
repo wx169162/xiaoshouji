@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>表情包管理</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,sans-serif;background:#f5f7fb;padding:16px;min-height:100vh}
@@ -30,15 +31,15 @@ h1{font-size:22px;font-weight:600}
 </style>
 </head>
 <body>
-<div class="header"><button class="back-btn" onclick="history.back()">← 返回</button><h1>😜 表情包管理</h1></div>
+<div class="header"><button class="back-btn" onclick="history.back()"><i class="fas fa-chevron-left"></i> 返回</button><h1><i class="far fa-grin-tongue"></i> 表情包管理</h1></div>
 
 <div class="card">
-  <div class="tabs"><button class="tab active" id="tabGlobal">🌍 全局表情</button><button class="tab" id="tabCustom">🎭 角色专属</button></div>
+  <div class="tabs"><button class="tab active" id="tabGlobal"><i class="fas fa-globe"></i> 全局表情</button><button class="tab" id="tabCustom"><i class="fas fa-mask"></i> 角色专属</button></div>
   <div class="emoji-grid" id="emojiGrid"></div>
   <div class="actions">
-    <button class="btn-sm" id="addEmojiBtn">➕ 添加表情</button>
-    <button class="btn-sm" id="selectAllBtn">☑️ 全选</button>
-    <button class="btn-sm danger" id="deleteBtn">🗑️ 删除选中</button>
+    <button class="btn-sm" id="addEmojiBtn"><i class="fas fa-plus"></i> 添加表情</button>
+    <button class="btn-sm" id="selectAllBtn"><i class="fas fa-check-double"></i> 全选</button>
+    <button class="btn-sm danger" id="deleteBtn"><i class="fas fa-trash-alt"></i> 删除选中</button>
   </div>
 </div>
 
